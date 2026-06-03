@@ -1,0 +1,8 @@
+host: 34.165.129.193
+username: postgres
+password: hashlama020
+port: 5432
+db-prod-name: Aircraft
+db-np-nape: AIrcraft-NP
+np-connection-string: postgresql://postgres:hashlama020@34.165.129.193:5432/AIrcraft-NP
+prod-connection-string: postgresql://postgres:hashlama020@34.165.129.193:5432/Aircraft
