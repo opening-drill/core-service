@@ -122,11 +122,6 @@ Table aircraft_path_history {
   id Int [pk, increment]
   aircraft_id String [not null]
   location Json [not null]
-  altitude Int
-  horizontal_speed_mps Float
-  vertical_speed_mps Float
-  heading_degrees Float
-  position_accuracy_m Float
   update_date DateTime [not null]
   aircraft aircraft [not null]
 }

@@ -5,7 +5,7 @@
  */
 import { Prisma } from '@prisma/client';
 
-import { pointToLngLat, type LngLat } from '../../geo/geo.js';
+import { pathToLngLatArray, type LngLat } from '../../geo/geo.js';
 import { toContractEnum } from '../../lib/enumCase.js';
 
 /** Include needed to expose `aircraft_type` (the type's name). */
@@ -15,8 +15,6 @@ export type AircraftWithType = Prisma.AircraftGetPayload<{ include: typeof aircr
 /** Latest telemetry row for an aircraft (from a DISTINCT ON query). */
 export interface LatestPosition {
   location: Prisma.JsonValue;
-  altitude: number | null;
-  heading_degrees: number | null;
   update_date: Date;
 }
 
@@ -39,18 +37,14 @@ export function toContractAircraftLive(a: AircraftWithType, latest: LatestPositi
   aircraft_id: string;
   aircraft_type: string;
   status: string;
-  location: LngLat | null;
-  altitude: number | null;
-  heading_degrees: number | null;
+  location: LngLat[] | null;
   update_date: Date | null;
 } {
   return {
     aircraft_id: a.id,
     aircraft_type: a.type.name,
     status: toContractEnum(a.status),
-    location: latest ? pointToLngLat(latest.location) : null,
-    altitude: latest?.altitude ?? null,
-    heading_degrees: latest?.heading_degrees ?? null,
+    location: latest ? pathToLngLatArray(latest.location) : null,
     update_date: latest?.update_date ?? null,
   };
 }
