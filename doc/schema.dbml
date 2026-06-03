@@ -1,0 +1,141 @@
+// Database Markup Language (DBML) generated from temp_prisma/schema.prisma
+
+Table user {
+  id uuid [primary key]
+  full_name varchar
+  username varchar [unique]
+  password varchar
+  create_date timestamp [default: `now()`]
+  delete_date timestamp
+}
+
+Table role {
+  id uuid [primary key]
+  name varchar
+  create_date timestamp [default: `now()`]
+  delete_date timestamp
+}
+
+Table permission {
+  permission PermissionType [primary key]
+  create_date timestamp [default: `now()`]
+  delete_date timestamp
+}
+
+Table user_role {
+  id integer [primary key, increment]
+  user_id uuid [ref: > user.id]
+  role_id uuid [ref: > role.id]
+  create_date timestamp [default: `now()`]
+  delete_date timestamp
+}
+
+Table role_permission {
+  id integer [primary key, increment]
+  role_id uuid [ref: > role.id]
+  permission PermissionType [ref: > permission.permission]
+  create_date timestamp [default: `now()`]
+  delete_date timestamp
+}
+
+Table picture {
+  id uuid [primary key]
+  s3_object_id varchar
+  s3_bucket_id varchar
+  file_name varchar
+  uploaded_at timestamp [default: `now()`]
+}
+
+Table polygon {
+  id uuid [primary key]
+  name varchar
+  geojson json
+  zone Zone
+  state_duration integer
+  create_date timestamp [default: `now()`]
+  delete_date timestamp
+}
+
+Table target {
+  id uuid [primary key]
+  name varchar
+  location json
+  status TargetStatus
+  create_date timestamp [default: `now()`]
+  delete_date timestamp
+}
+
+Table event {
+  id uuid [primary key]
+  user_id uuid [ref: > user.id]
+  target_id uuid [ref: > target.id]
+  aircraft_id uuid [ref: > aircraft.id]
+  picture_id uuid [ref: > picture.id]
+  ai_recommendation_id uuid [unique, ref: - ai_recommendation.id]
+  create_date timestamp [default: `now()`]
+  delete_date timestamp
+  update_date timestamp
+}
+
+Table aircraft_type {
+  id uuid [primary key]
+  name varchar
+  price integer
+  create_date timestamp [default: `now()`]
+  delete_date timestamp
+}
+
+Table aircraft {
+  id uuid [primary key]
+  type_id uuid [ref: > aircraft_type.id]
+  status AircraftStatus
+  update_date timestamp
+}
+
+Table aircraft_path_history {
+  id integer [primary key, increment]
+  aircraft_id uuid [ref: > aircraft.id]
+  location json
+  altitude integer
+  horizontal_speed_mps float
+  vertical_speed_mps float
+  heading_degrees float
+  position_accuracy_m float
+  update_date timestamp
+}
+
+Table AiAnalysis {
+  id uuid [primary key]
+  raw_result text
+  picture_id uuid [ref: > picture.id]
+  create_date timestamp [default: `now()`]
+}
+
+Table ai_recommendation {
+  id uuid [primary key]
+  raw_recommendation text
+  recommended_aircraft_id uuid [ref: > aircraft.id]
+  urgency_level float
+  create_date timestamp [default: `now()`]
+}
+
+Enum PermissionType {
+  EDIT
+  VIEW
+}
+
+Enum Zone {
+  GAZA_SOUTH
+  GAZA_NORTH
+}
+
+Enum TargetStatus {
+  DESTROYED
+  STANDING
+}
+
+Enum AircraftStatus {
+  BUSY
+  FREE
+  BROKEN
+}
