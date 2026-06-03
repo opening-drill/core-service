@@ -1,7 +1,6 @@
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { z } from 'zod';
 
 // Setup singleton PrismaClient for Prisma 7 with driver adapter
 const globalForPrisma = globalThis as unknown as {
@@ -28,3 +27,4 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 export { prisma };
+
