@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 
 import { getParam, getQuery } from '../../middleware/validate.js';
 import { usersService } from './users.service.js';
-import type { UserCreate, UserSignup, UserUpdate } from './users.schema.js';
+import type { UserAuth, UserCreate, UserSignup, UserUpdate } from './users.schema.js';
 import { userListQuerySchema } from './users.schema.js';
 
 export const usersController = {
@@ -33,9 +33,9 @@ export const usersController = {
     res.json(await usersService.permissions(getParam(req, 'userId')));
   },
 
-  /** POST /api/users/auth — verify `X-Api-Key`. */
-  async verifyApiKey(_req: Request, res: Response): Promise<void> {
-    res.json(await usersService.verifyApiKey());
+  /** POST /api/users/auth — verify username/password (`X-Api-Key` in header). */
+  async authenticate(req: Request, res: Response): Promise<void> {
+    res.json(await usersService.authenticate(req.body as UserAuth));
   },
 
   /** POST /api/users/signup — provision a user (`X-Api-Key` required). */

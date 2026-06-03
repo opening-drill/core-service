@@ -1,7 +1,7 @@
 import { Prisma } from '@prisma/client';
 
 import { env } from '../../config/env.js';
-import { hashPassword } from '../../lib/password.js';
+import { hashPassword, verifyPassword } from '../../lib/password.js';
 import { prisma } from '../../lib/prisma.js';
 import { buildListResult, softDeleteWhere, toPrismaList } from '../../lib/query.js';
 import { withPrismaErrors } from '../../lib/prismaErrors.js';
@@ -9,7 +9,7 @@ import { resolveUsernameToId } from '../../lib/userIdentity.js';
 import { loadUserPermissions } from '../../middleware/authorize.js';
 import { HttpError } from '../../middleware/errorHandler.js';
 import { userRolesService } from '../user-roles/userRoles.service.js';
-import type { UserCreate, UserListQuery, UserSignup, UserUpdate } from './users.schema.js';
+import type { UserAuth, UserCreate, UserListQuery, UserSignup, UserUpdate } from './users.schema.js';
 
 /** Fetches a user's active role names + lowercased permissions by internal id. */
 async function loadRolesAndPermissions(
@@ -132,8 +132,18 @@ export const usersService = {
     return { user_id: username, roles, permissions };
   },
 
-  /** POST /api/users/auth — confirms `X-Api-Key` was accepted by middleware. */
-  async verifyApiKey(): Promise<{ valid: true }> {
-    return { valid: true };
+  /** POST /api/users/auth — verifies username/password against the database. */
+  async authenticate(
+    input: UserAuth,
+  ): Promise<{ valid: true; user_id: string; roles: string[]; permissions: string[] }> {
+    const user = await prisma.user.findFirst({
+      where: { username: input.username, delete_date: null },
+      select: { id: true, username: true, password: true },
+    });
+    if (!user || !(await verifyPassword(input.password, user.password))) {
+      throw new HttpError(401, 'Invalid username or password', undefined, 'UNAUTHORIZED');
+    }
+    const { roles, permissions } = await loadRolesAndPermissions(user.id);
+    return { valid: true, user_id: user.username, roles, permissions };
   },
 };

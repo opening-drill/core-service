@@ -124,10 +124,33 @@ describe.skipIf(!hasTestDb)('Users API (DB)', () => {
     expect(res.status).toBe(401);
   });
 
-  it('POST /api/users/auth returns valid when X-Api-Key is correct', async () => {
-    const res = await request(app).post('/api/users/auth').set(auth);
+  it('POST /api/users/auth verifies username and password', async () => {
+    const res = await request(app)
+      .post('/api/users/auth')
+      .set(auth)
+      .send({ username: rbac.viewerUsername, password: rbac.viewerPassword });
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ valid: true });
+    expect(res.body).toEqual({
+      valid: true,
+      user_id: rbac.viewerUsername,
+      roles: ['viewer'],
+      permissions: ['view'],
+    });
+  });
+
+  it('POST /api/users/auth rejects invalid credentials', async () => {
+    const res = await request(app)
+      .post('/api/users/auth')
+      .set(auth)
+      .send({ username: rbac.viewerUsername, password: 'wrong-password' });
+    expect(res.status).toBe(401);
+  });
+
+  it('POST /api/users/auth rejects missing API key', async () => {
+    const res = await request(app)
+      .post('/api/users/auth')
+      .send({ username: rbac.viewerUsername, password: rbac.viewerPassword });
+    expect(res.status).toBe(401);
   });
 
   it('/auth/me reports API key principal', async () => {
