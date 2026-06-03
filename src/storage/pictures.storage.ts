@@ -2,9 +2,9 @@
  * Picture storage — object-storage concerns for event PNGs.
  *
  * Uploads are a single request: the API receives the binary, writes it to
- * S3/MinIO server-side (`uploadPicture`), and the pictures service persists a
- * `picture` row from the returned identifiers. Downloads are served via
- * short-lived pre-signed GET URLs.
+ * object storage server-side (`uploadPicture`), and the pictures service
+ * persists a `picture` row from the returned identifiers. Downloads are served
+ * via short-lived signed GET URLs (GCS or S3/MinIO).
  *
  * DB persistence lives in the pictures service; this module is storage-only.
  */

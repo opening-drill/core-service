@@ -71,21 +71,43 @@ const UserPermissions = {
   required: ['user_id', 'roles', 'permissions'],
 };
 
-const UserAuthRequest = {
-  type: 'object',
-  properties: { username: { type: 'string' }, password: { type: 'string' } },
-  required: ['username', 'password'],
+const apiKeyHeaderParam = {
+  name: 'X-Api-Key',
+  in: 'header' as const,
+  required: true,
+  schema: { type: 'string' },
+  description: 'Must match env `API_KEY`.',
 };
 
 const UserAuthResult = {
   type: 'object',
+  properties: { valid: { type: 'boolean', enum: [true] } },
+  required: ['valid'],
+};
+
+const UserSignup = {
+  type: 'object',
   properties: {
-    user_id: { type: 'string' },
     full_name: { type: 'string' },
+    username: { type: 'string' },
+    password: { type: 'string', minLength: 8 },
+    role_name: { type: 'string', description: 'Defaults to SIGNUP_DEFAULT_ROLE_NAME (viewer)' },
+    role_id: { type: 'string', format: 'uuid' },
+  },
+  required: ['full_name', 'username', 'password'],
+};
+
+const UserSignupResult = {
+  type: 'object',
+  properties: {
+    id: { type: 'string', format: 'uuid' },
+    username: { type: 'string' },
+    full_name: { type: 'string' },
+    user_id: { type: 'string', description: 'Same as username; use for auth responses' },
     roles: { type: 'array', items: { type: 'string' } },
     permissions: { type: 'array', items: { type: 'string' } },
   },
-  required: ['user_id', 'full_name', 'roles', 'permissions'],
+  required: ['id', 'username', 'full_name', 'user_id', 'roles', 'permissions'],
 };
 
 const userIdParam = { name: 'user_id', in: 'path', required: true, schema: { type: 'string' } };
@@ -100,8 +122,9 @@ export const usersOpenapi: OpenapiFragment = {
     RoleAssignmentResult,
     RoleAssignCreate,
     UserPermissions,
-    UserAuthRequest,
     UserAuthResult,
+    UserSignup,
+    UserSignupResult,
   },
   paths: {
     ...crudPaths({
@@ -117,12 +140,28 @@ export const usersOpenapi: OpenapiFragment = {
     '/api/users/auth': {
       post: {
         tags: ['users'],
-        summary: 'Authenticate by username + password',
+        summary: 'Verify `X-Api-Key`',
+        description: 'Returns `{ valid: true }` when the API key is accepted.',
         security: [],
-        requestBody: { required: true, content: jsonContent(ref('UserAuthRequest')) },
+        parameters: [apiKeyHeaderParam],
         responses: {
-          '200': { description: 'Authenticated user', content: jsonContent(ref('UserAuthResult')) },
-          ...errorResponses('400', '401'),
+          '200': { description: 'API key accepted', content: jsonContent(ref('UserAuthResult')) },
+          ...errorResponses('401', '503'),
+        },
+      },
+    },
+    '/api/users/signup': {
+      post: {
+        tags: ['users'],
+        summary: 'Provision a user (API key)',
+        description:
+          'Creates a user and assigns a role. Requires header `X-Api-Key` matching server env `API_KEY`.',
+        security: [],
+        parameters: [apiKeyHeaderParam],
+        requestBody: { required: true, content: jsonContent(ref('UserSignup')) },
+        responses: {
+          '201': { description: 'User created', content: jsonContent(ref('UserSignupResult')) },
+          ...errorResponses('400', '401', '409', '503'),
         },
       },
     },

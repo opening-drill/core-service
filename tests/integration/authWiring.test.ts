@@ -1,13 +1,11 @@
 /**
- * Auth-wiring checks that need no database: unauthenticated requests to
- * protected routes are rejected by basicAuth *before* any DB lookup, and the
- * public routes stay open. (A well-formed Basic header would trigger a DB
- * query, so these tests deliberately send none / a malformed one.)
+ * Auth-wiring checks that need no database: protected routes require `X-Api-Key`.
  */
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
 import { createApp } from '../../src/app.js';
+import { apiKeyHeader, TEST_API_KEY } from '../helpers/auth.js';
 
 const PROTECTED = [
   '/api/users',
@@ -24,16 +22,23 @@ describe('auth wiring (no DB)', () => {
     const app = createApp();
     for (const path of PROTECTED) {
       const res = await request(app).get(path);
-      expect(res.status, `${path} should require auth`).toBe(401);
-      expect(res.headers['www-authenticate']).toMatch(/Basic/);
-      // Nested live-data error shape: { error: { code, message } }.
+      expect(res.status, `${path} should require X-Api-Key`).toBe(401);
       expect(res.body.error.code).toBe('UNAUTHORIZED');
     }
   });
 
-  it('rejects a malformed Authorization header with 401', async () => {
-    const res = await request(createApp()).get('/api/users').set('Authorization', 'Bearer xyz');
+  it('rejects an invalid X-Api-Key with 401', async () => {
+    const res = await request(createApp())
+      .get('/api/users')
+      .set(apiKeyHeader('wrong-key'));
     expect(res.status).toBe(401);
+  });
+
+  it('accepts a valid X-Api-Key on protected routes', async () => {
+    const res = await request(createApp())
+      .get('/api/users')
+      .set(apiKeyHeader(TEST_API_KEY));
+    expect(res.status).not.toBe(401);
   });
 
   it('keeps health and openapi public', async () => {
@@ -42,10 +47,21 @@ describe('auth wiring (no DB)', () => {
     expect((await request(app).get('/openapi.json')).status).toBe(200);
   });
 
-  it('returns 401 for an unparseable Basic token without crashing', async () => {
-    // "Basic <base64 without colon>" → malformed credentials → 401.
-    const token = Buffer.from('nocolon').toString('base64');
-    const res = await request(createApp()).get('/api/users').set('Authorization', `Basic ${token}`);
-    expect(res.status).toBe(401);
+  it('returns 400 for malformed JSON bodies', async () => {
+    const res = await request(createApp())
+      .post('/api/users/signup')
+      .set(apiKeyHeader(TEST_API_KEY))
+      .set('Content-Type', 'application/json')
+      .send('{"username":"x",}');
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('INVALID_JSON');
+  });
+
+  it('POST /api/users/auth returns valid when X-Api-Key is correct', async () => {
+    const res = await request(createApp())
+      .post('/api/users/auth')
+      .set(apiKeyHeader(TEST_API_KEY));
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ valid: true });
   });
 });
