@@ -134,8 +134,8 @@ model AircraftType {
   id           String    @id @default(uuid()) @db.Uuid
   name         String
   price        Int
-  velocity_kmh Float
   payload_kg   Float
+  velocity_kmh Float
   create_date  DateTime  @default(now())
   delete_date  DateTime?
 
