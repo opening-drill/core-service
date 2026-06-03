@@ -67,22 +67,29 @@ export function getS3Client(): S3Client {
   return globalForS3.s3Client;
 }
 
-/** Pre-signed PUT URL the client uses to upload object bytes directly. */
-export async function getPresignedPutUrl(key: string, contentType: string): Promise<string> {
+/**
+ * Uploads object bytes to S3/MinIO server-side, always to the configured bucket.
+ * Returns the bucket the object was written to. The destination is deliberately
+ * not caller-overridable (prevents arbitrary-bucket writes).
+ */
+export async function putObject(key: string, body: Buffer, contentType: string): Promise<string> {
   const cfg = requireS3Env();
-  const command = new PutObjectCommand({
-    Bucket: cfg.bucket,
-    Key: key,
-    ContentType: contentType,
-  });
-  return getSignedUrl(getS3Client(), command, { expiresIn: cfg.presignExpirySeconds });
+  await getS3Client().send(
+    new PutObjectCommand({ Bucket: cfg.bucket, Key: key, Body: body, ContentType: contentType }),
+  );
+  return cfg.bucket;
 }
 
-/** Pre-signed GET URL for downloading an object. */
-export async function getPresignedGetUrl(key: string): Promise<string> {
+/**
+ * Pre-signed GET URL for downloading an object. `expiresIn` (seconds) overrides
+ * the configured default when the caller passes one (contract `?expires=`).
+ */
+export async function getPresignedGetUrl(key: string, expiresIn?: number): Promise<string> {
   const cfg = requireS3Env();
   const command = new GetObjectCommand({ Bucket: cfg.bucket, Key: key });
-  return getSignedUrl(getS3Client(), command, { expiresIn: cfg.presignExpirySeconds });
+  return getSignedUrl(getS3Client(), command, {
+    expiresIn: expiresIn ?? cfg.presignExpirySeconds,
+  });
 }
 
 /** Returns true if the object exists in the bucket. */

@@ -32,25 +32,40 @@ export class HttpError extends Error {
 function defaultCodeForStatus(status: number): string {
   switch (status) {
     case 400:
-      return 'BadRequest';
+      return 'BAD_REQUEST';
     case 401:
-      return 'Unauthorized';
+      return 'UNAUTHORIZED';
     case 403:
-      return 'Forbidden';
+      return 'FORBIDDEN';
     case 404:
-      return 'NotFound';
+      return 'NOT_FOUND';
     case 409:
-      return 'Conflict';
+      return 'CONFLICT';
     default:
-      return status >= 500 ? 'InternalServerError' : 'Error';
+      return status >= 500 ? 'INTERNAL_SERVER_ERROR' : 'ERROR';
   }
+}
+
+/**
+ * Normalizes any error code to the SCREAMING_SNAKE_CASE the live-data contract
+ * expects (`{ error: { code, message } }`). Accepts legacy PascalCase codes
+ * (`NotFound`, `StorageNotConfigured`) thrown elsewhere in the codebase and
+ * converts them in one place, so call sites need not be swept.
+ */
+function normalizeCode(code: string): string {
+  return code
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[\s-]+/g, '_')
+    .toUpperCase();
 }
 
 /** 404 handler for unmatched routes. Mounted after all routes. */
 export const notFoundHandler: RequestHandler = (req, res) => {
   res.status(404).json({
-    error: 'NotFound',
-    message: `Route not found: ${req.method} ${req.originalUrl}`,
+    error: {
+      code: 'NOT_FOUND',
+      message: `Route not found: ${req.method} ${req.originalUrl}`,
+    },
   });
 };
 
@@ -58,25 +73,31 @@ export const notFoundHandler: RequestHandler = (req, res) => {
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   if (err instanceof ZodError) {
     res.status(400).json({
-      error: 'ValidationError',
-      message: 'Request validation failed',
-      details: err.issues,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Request validation failed',
+        details: err.issues,
+      },
     });
     return;
   }
 
   if (err instanceof HttpError) {
     res.status(err.statusCode).json({
-      error: err.code,
-      message: err.message,
-      ...(err.details !== undefined ? { details: err.details } : {}),
+      error: {
+        code: normalizeCode(err.code),
+        message: err.message,
+        ...(err.details !== undefined ? { details: err.details } : {}),
+      },
     });
     return;
   }
 
   logger.error({ err }, 'Unhandled error');
   res.status(500).json({
-    error: 'InternalServerError',
-    message: 'An unexpected error occurred',
+    error: {
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'An unexpected error occurred',
+    },
   });
 };

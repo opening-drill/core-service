@@ -69,9 +69,19 @@ const mergedPaths: OpenapiPaths = fragments.reduce<OpenapiPaths>(
   { ...healthPath },
 );
 
+/** Shared `{ lng, lat }` coordinate schema referenced across contract fragments. */
+const lngLatSchema: OpenapiSchemas[string] = {
+  type: 'object',
+  properties: {
+    lng: { type: 'number', minimum: -180, maximum: 180 },
+    lat: { type: 'number', minimum: -90, maximum: 90 },
+  },
+  required: ['lng', 'lat'],
+};
+
 const mergedSchemas: OpenapiSchemas = fragments.reduce<OpenapiSchemas>(
   (acc, fragment) => ({ ...acc, ...fragment.schemas }),
-  { Error: errorSchema },
+  { Error: errorSchema, LngLat: lngLatSchema },
 );
 
 const mergedTags: OpenapiTag[] = [

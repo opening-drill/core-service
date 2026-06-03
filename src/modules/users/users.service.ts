@@ -1,11 +1,28 @@
 import { Prisma } from '@prisma/client';
 
-import { hashPassword } from '../../lib/password.js';
+import { hashPassword, verifyPassword } from '../../lib/password.js';
 import { prisma } from '../../lib/prisma.js';
 import { buildListResult, softDeleteWhere, toPrismaList } from '../../lib/query.js';
 import { withPrismaErrors } from '../../lib/prismaErrors.js';
+import { resolveUsernameToId } from '../../lib/userIdentity.js';
+import { loadUserPermissions } from '../../middleware/authorize.js';
 import { HttpError } from '../../middleware/errorHandler.js';
-import type { UserCreate, UserListQuery, UserUpdate } from './users.schema.js';
+import type { UserAuth, UserCreate, UserListQuery, UserUpdate } from './users.schema.js';
+
+/** Fetches a user's active role names + lowercased permissions by internal id. */
+async function loadRolesAndPermissions(
+  userId: string,
+): Promise<{ roles: string[]; permissions: string[] }> {
+  const roleRows = await prisma.userRole.findMany({
+    where: { user_id: userId, delete_date: null, role: { delete_date: null } },
+    select: { role: { select: { name: true } } },
+  });
+  const permissions = await loadUserPermissions(userId);
+  return {
+    roles: roleRows.map((r) => r.role.name),
+    permissions: [...permissions].map((p) => p.toLowerCase()),
+  };
+}
 
 /** Public user projection — never exposes the password hash. */
 const publicSelect = {
@@ -73,5 +90,37 @@ export const usersService = {
   async remove(id: string) {
     await findActiveOrThrow(id);
     await prisma.user.update({ where: { id }, data: { delete_date: new Date() } });
+  },
+
+  /** GET /api/users/:user_id/permissions — roles & permissions for a user. */
+  async permissions(
+    username: string,
+  ): Promise<{ user_id: string; roles: string[]; permissions: string[] }> {
+    const userId = await resolveUsernameToId(username);
+    const { roles, permissions } = await loadRolesAndPermissions(userId);
+    return { user_id: username, roles, permissions };
+  },
+
+  /**
+   * POST /api/users/auth — verifies username + password and returns the user
+   * with its roles/permissions. Throws 401 on any credential mismatch (and does
+   * not reveal whether the username exists).
+   */
+  async authenticate(input: UserAuth): Promise<{
+    user_id: string;
+    full_name: string;
+    roles: string[];
+    permissions: string[];
+  }> {
+    const user = await prisma.user.findFirst({
+      where: { username: input.username, delete_date: null },
+      select: { id: true, full_name: true, username: true, password: true },
+    });
+    const ok = user !== null && (await verifyPassword(input.password, user.password));
+    if (!user || !ok) {
+      throw new HttpError(401, 'Invalid username or password', undefined, 'UNAUTHORIZED');
+    }
+    const { roles, permissions } = await loadRolesAndPermissions(user.id);
+    return { user_id: user.username, full_name: user.full_name, roles, permissions };
   },
 };

@@ -4,10 +4,13 @@ import { getParam, getQuery } from '../../middleware/validate.js';
 import { polygonsService } from './polygons.service.js';
 import type { PolygonCreate, PolygonUpdate } from './polygons.schema.js';
 import { polygonListQuerySchema } from './polygons.schema.js';
+import { polygonsEnvelope, toContractPolygon } from './polygons.serialize.js';
 
 export const polygonsController = {
+  /** GET /api/polygons (?active=true) — active danger zones. */
   async list(req: Request, res: Response): Promise<void> {
-    res.json(await polygonsService.list(getQuery(req, polygonListQuerySchema)));
+    const result = await polygonsService.list(getQuery(req, polygonListQuerySchema));
+    res.json(polygonsEnvelope(result.data.map(toContractPolygon)));
   },
 
   async getById(req: Request, res: Response): Promise<void> {

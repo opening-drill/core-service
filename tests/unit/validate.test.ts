@@ -32,10 +32,10 @@ describe('validate middleware', () => {
     expect(res.body).toEqual({ body: { name: 'jet' }, query: { page: 4 } });
   });
 
-  it('returns 400 ValidationError on bad body', async () => {
+  it('returns 400 VALIDATION_ERROR on bad body', async () => {
     const res = await request(makeApp()).post('/echo').send({ name: '' });
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe('ValidationError');
-    expect(Array.isArray(res.body.details)).toBe(true);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    expect(Array.isArray(res.body.error.details)).toBe(true);
   });
 });

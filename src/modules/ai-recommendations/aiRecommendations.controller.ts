@@ -14,8 +14,10 @@ export const aiRecommendationsController = {
     res.json(await aiRecommendationsService.getById(getParam(req, 'id')));
   },
 
+  /** POST /api/ai-recommendations — store and link to the event. */
   async create(req: Request, res: Response): Promise<void> {
-    res.status(201).json(await aiRecommendationsService.create(req.body as AiRecommendationCreate));
+    const rec = await aiRecommendationsService.create(req.body as AiRecommendationCreate);
+    res.status(201).json({ ai_recommendation_id: rec.id });
   },
 
   async remove(req: Request, res: Response): Promise<void> {

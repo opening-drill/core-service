@@ -9,7 +9,7 @@ export const polygonCreateSchema = z
     name: z.string().min(1),
     geojson: GeoJsonPolygonSchema,
     zone: z.nativeEnum(Zone),
-    expiry_date: z.date(),
+    expiry_date: z.coerce.date(),
   })
   .strict();
 
@@ -18,7 +18,7 @@ export const polygonUpdateSchema = z
     name: z.string().min(1).optional(),
     geojson: GeoJsonPolygonSchema.optional(),
     zone: z.nativeEnum(Zone).optional(),
-    state_duration: z.number().int().nonnegative().optional(),
+    expiry_date: z.coerce.date().optional(),
   })
   .strict();
 
@@ -27,9 +27,11 @@ export const polygonIdParamSchema = z.object({ id: z.string().uuid() });
 export const polygonListQuerySchema = buildListQuerySchema([
   'create_date',
   'name',
-  'state_duration',
+  'expiry_date',
 ]).extend({
   zone: z.nativeEnum(Zone).optional(),
+  // Contract `?active=true` — only zones that are not soft-deleted.
+  active: z.coerce.boolean().optional(),
 });
 
 export type PolygonCreate = z.infer<typeof polygonCreateSchema>;
