@@ -1,3 +1,5 @@
+import z from "zod";
+
 /**
  * GeoJSON helpers — zod schemas for `Point` / `Polygon` (WGS84 / EPSG:4326)
  * plus (de)serialization helpers for Prisma `Json` geography columns.
