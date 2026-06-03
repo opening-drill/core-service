@@ -2,25 +2,31 @@ import { Router } from 'express';
 
 import { asyncHandler } from '../../lib/asyncHandler.js';
 import { requireEdit, requireView } from '../../middleware/authorize.js';
+import { requireApiKey } from '../../middleware/requireApiKey.js';
 import { validate } from '../../middleware/validate.js';
 import { userRolesRouter } from '../user-roles/userRoles.routes.js';
 import { usersController } from './users.controller.js';
 import {
-  userAuthSchema,
   userCreateSchema,
   userIdParamSchema,
   userListQuerySchema,
   userNameParamSchema,
+  userSignupSchema,
   userUpdateSchema,
 } from './users.schema.js';
 
-/**
- * Public authentication endpoint (POST /api/users/auth). Mounted WITHOUT
- * basicAuth — it verifies credentials itself — so it must be mounted before the
- * protected `/api/users` router in app.ts.
- */
+/** POST /api/users/auth — verify `X-Api-Key` (public). */
 export const usersAuthRouter = Router();
-usersAuthRouter.post('/', validate({ body: userAuthSchema }), asyncHandler(usersController.authenticate));
+usersAuthRouter.post('/', requireApiKey, asyncHandler(usersController.verifyApiKey));
+
+/** POST /api/users/signup — provision a user (requires `X-Api-Key`). */
+export const usersSignupRouter = Router();
+usersSignupRouter.post(
+  '/',
+  requireApiKey,
+  validate({ body: userSignupSchema }),
+  asyncHandler(usersController.signup),
+);
 
 export const usersRouter = Router();
 
@@ -55,7 +61,6 @@ usersRouter.delete(
   asyncHandler(usersController.remove),
 );
 
-// Effective roles & permissions for a user (`:userId` is the username).
 usersRouter.get(
   '/:userId/permissions',
   requireView,
@@ -63,5 +68,4 @@ usersRouter.get(
   asyncHandler(usersController.permissions),
 );
 
-// Nested: role assignments for a user.
 usersRouter.use('/:userId/roles', userRolesRouter);

@@ -2,6 +2,7 @@ import { PermissionType } from '@prisma/client';
 import type { RequestHandler } from 'express';
 
 import { prisma } from '../lib/prisma.js';
+import { API_KEY_PRINCIPAL } from './apiKeyAuth.js';
 import { HttpError } from './errorHandler.js';
 
 /**
@@ -10,7 +11,7 @@ import { HttpError } from './errorHandler.js';
  * `authorize(permission)` resolves the authenticated user's effective
  * permissions (active `user_role` → active `role` → active `role_permission` →
  * active `permission`) and enforces that `permission` is granted, returning 403
- * otherwise. Must run after `basicAuth`.
+ * otherwise. Must run after `apiKeyAuth`. API-key callers receive full access.
  */
 
 /** Loads the set of permissions effectively granted to a user. */
@@ -48,6 +49,12 @@ export function authorize(required: PermissionType): RequestHandler {
       try {
         if (!req.user) {
           throw new HttpError(401, 'Authentication required', undefined, 'Unauthorized');
+        }
+        if (req.user.id === API_KEY_PRINCIPAL.id) {
+          if (required === PermissionType.VIEW || required === PermissionType.EDIT) {
+            next();
+            return;
+          }
         }
         const granted = await loadUserPermissions(req.user.id);
         if (!granted.has(required)) {

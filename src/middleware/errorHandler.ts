@@ -93,6 +93,21 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
     return;
   }
 
+  // Malformed JSON from express.json() / body-parser (e.g. trailing commas).
+  const parserStatus =
+    typeof err === 'object' && err !== null && 'status' in err
+      ? (err as { status: unknown }).status
+      : undefined;
+  if (err instanceof SyntaxError && parserStatus === 400) {
+    res.status(400).json({
+      error: {
+        code: 'INVALID_JSON',
+        message: 'Request body must be valid JSON (check for trailing commas or unquoted keys)',
+      },
+    });
+    return;
+  }
+
   logger.error({ err }, 'Unhandled error');
   res.status(500).json({
     error: {
