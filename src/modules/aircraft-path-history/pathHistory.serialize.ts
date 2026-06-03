@@ -27,3 +27,4 @@ export function toContractTrackPoint(p: AircraftPathHistory): {
     update_date: p.update_date,
   };
 }
+
