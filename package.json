@@ -28,8 +28,11 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1060.0",
+    "@aws-sdk/s3-request-presigner": "^3.1060.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "bcryptjs": "^3.0.3",
     "express": "^5.1.0",
     "pg": "^8.21.0",
     "pino": "^9.6.0",
@@ -39,6 +42,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
+    "@types/bcryptjs": "^2.4.6",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.5",
     "@types/pg": "^8.20.0",
@@ -47,6 +51,7 @@
     "eslint": "^9.18.0",
     "pino-pretty": "^13.0.0",
     "prisma": "^7.8.0",
+    "prisma-dbml-generator": "^0.12.0",
     "supertest": "^7.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",

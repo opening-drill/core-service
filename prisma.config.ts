@@ -7,9 +7,8 @@ export default defineConfig({
   // Datasource URL is central to the config file in Prisma 7
   datasource: {
     url:
-      process.env.DATABASE_URL ||
-      'postgresql://postgres:hashlama020@34.165.129.193:5432/AIrcraft-NP',
-  },
+      process.env.DATABASE_URL
+      },
   
   migrations: {
     path: './prisma/migrations',

@@ -12,7 +12,7 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['eslint.config.js'],
+          allowDefaultProject: ['eslint.config.js', 'vitest.config.ts', 'prisma.config.ts'],
         },
         tsconfigRootDir: import.meta.dirname,
       },
@@ -24,6 +24,15 @@ export default tseslint.config(
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
+    },
+  },
+  {
+    // Route files wire stateless controller-object methods into Express via
+    // `asyncHandler(controller.method)`. The controllers never reference
+    // `this`, so the unbound-method check is a false positive here.
+    files: ['**/*.routes.ts'],
+    rules: {
+      '@typescript-eslint/unbound-method': 'off',
     },
   },
   {
