@@ -4,9 +4,11 @@ import { buildListQuerySchema } from '../../lib/query.js';
 
 export const aiRecommendationCreateSchema = z
   .object({
-    raw_recommendation: z.string().min(1),
+    // Links the recommendation back to the event (sets Event.ai_recommendation_id).
+    event_id: z.string().uuid(),
     recommended_aircraft_id: z.string().uuid(),
     urgency_level: z.number(),
+    raw_recommendation: z.string().min(1),
   })
   .strict();
 

@@ -10,8 +10,7 @@ export const userRolesController = {
   },
 
   async assign(req: Request, res: Response): Promise<void> {
-    const { role_id } = req.body as UserRoleCreate;
-    res.status(201).json(await userRolesService.assign(getParam(req, 'userId'), role_id));
+    res.status(201).json(await userRolesService.assign(getParam(req, 'userId'), req.body as UserRoleCreate));
   },
 
   async remove(req: Request, res: Response): Promise<void> {

@@ -28,7 +28,7 @@ export const rolesOpenapi: OpenapiFragment = {
   schemas: { Role, RoleCreate, RoleUpdate, PermissionAssignment },
   paths: {
     ...crudPaths({
-      base: '/roles',
+      base: '/api/roles',
       tag: 'roles',
       label: 'role',
       resource: 'Role',

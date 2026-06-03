@@ -170,13 +170,19 @@ export function crudPaths(opts: CrudPathOptions): OpenapiPaths {
   };
 }
 
-/** The shared `Error` component schema. */
+/** The shared `Error` component schema (nested live-data contract shape). */
 export const errorSchema: OpenapiObject = {
   type: 'object',
   properties: {
-    error: { type: 'string', example: 'NotFound' },
-    message: { type: 'string' },
-    details: {},
+    error: {
+      type: 'object',
+      properties: {
+        code: { type: 'string', example: 'NOT_FOUND' },
+        message: { type: 'string' },
+        details: {},
+      },
+      required: ['code', 'message'],
+    },
   },
-  required: ['error', 'message'],
+  required: ['error'],
 };

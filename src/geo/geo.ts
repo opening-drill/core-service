@@ -27,11 +27,20 @@ export const GeoJsonPolygonSchema = z.object({
         .array(
             z
                 .array(coordinate)
-                .min(4, { message: 'A polygon ring must have at least 4 positions (closed ring)' }),
+                .min(3, { message: 'A polygon must have at least 3 positions' }),
         )
-        .min(1, { message: 'A polygon must have at least one ring' }),
 });
+
 export type GeoJsonPolygon = z.infer<typeof GeoJsonPolygonSchema>;
+
+/**
+ * A Path — an ordered array of `[longitude, latitude]` coordinate pairs
+ * representing a trajectory or track. Stored as a raw JSON array in JSONB.
+ */
+export const PathSchema = z
+    .array(coordinate)
+    .min(1, { message: 'A path must have at least 1 coordinate' });
+export type Path = z.infer<typeof PathSchema>;
 
 /** Validates an unknown value as a GeoJSON Point (throws ZodError → 400). */
 export function validatePoint(value: unknown): GeoJsonPoint {
@@ -43,8 +52,18 @@ export function validatePolygon(value: unknown): GeoJsonPolygon {
     return GeoJsonPolygonSchema.parse(value);
 }
 
+/** Validates an unknown value as a Path (throws ZodError → 400). */
+export function validatePath(value: unknown): Path {
+    return PathSchema.parse(value);
+}
+
 /** A validated GeoJSON object, ready for assignment to a Prisma `Json` column. */
 export function toGeoJsonInput(value: GeoJsonPoint | GeoJsonPolygon): Prisma.InputJsonValue {
+    return value;
+}
+
+/** A validated Path array, ready for assignment to a Prisma `Json` column. */
+export function toPathInput(value: Path): Prisma.InputJsonValue {
     return value;
 }
 
@@ -56,4 +75,39 @@ export function parseGeoJsonPoint(value: Prisma.JsonValue): GeoJsonPoint {
 /** Reads a Prisma `Json` Polygon column back as a typed GeoJSON Polygon. */
 export function parseGeoJsonPolygon(value: Prisma.JsonValue): GeoJsonPolygon {
     return value as unknown as GeoJsonPolygon;
+}
+
+/** Reads a Prisma `Json` Path column back as a typed Path. */
+export function parsePath(value: Prisma.JsonValue): Path {
+    return value as unknown as Path;
+}
+
+/**
+ * The live-data contract exchanges coordinates as `{ lng, lat }` objects, while
+ * the database stores them as GeoJSON `Point` (`coordinates: [lng, lat]`). These
+ * helpers convert at the API boundary in both directions.
+ */
+export const LngLatSchema = z.object({ lng: longitude, lat: latitude }).strict();
+export type LngLat = z.infer<typeof LngLatSchema>;
+
+/** `{ lng, lat }` (inbound body) → GeoJSON Point ready for a Prisma `Json` column. */
+export function lngLatToPoint(coordinates: LngLat): GeoJsonPoint {
+    return { type: 'Point', coordinates: [coordinates.lng, coordinates.lat] };
+}
+
+/** Prisma `Json` Point column → `{ lng, lat }` for outbound serialization. */
+export function pointToLngLat(value: Prisma.JsonValue): LngLat {
+    const point = parseGeoJsonPoint(value);
+    return { lng: point.coordinates[0], lat: point.coordinates[1] };
+}
+
+/** `{ lng, lat }[]` (inbound body) → Path array ready for a Prisma `Json` column. */
+export function lngLatArrayToPath(locations: LngLat[]): Path {
+    return locations.map((loc) => [loc.lng, loc.lat] as [number, number]);
+}
+
+/** Prisma `Json` Path column → `{ lng, lat }[]` for outbound serialization. */
+export function pathToLngLatArray(value: Prisma.JsonValue): LngLat[] {
+    const path = parsePath(value);
+    return path.map(([lng, lat]) => ({ lng, lat }));
 }

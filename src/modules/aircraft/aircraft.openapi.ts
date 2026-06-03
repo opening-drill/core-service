@@ -1,24 +1,46 @@
 import {
-  crudPaths,
   errorResponses,
   jsonContent,
-  listQueryParams,
-  listResponseSchema,
   ref,
   type OpenapiFragment,
 } from '../../lib/openapiHelpers.js';
 
-const STATUS = { type: 'string', enum: ['BUSY', 'FREE', 'BROKEN'] };
+const STATUS = { type: 'string', enum: ['busy', 'free', 'broken'] };
 
-const Aircraft = {
+const AircraftListItem = {
   type: 'object',
   properties: {
-    id: { type: 'string', format: 'uuid' },
-    type_id: { type: 'string', format: 'uuid' },
+    aircraft_id: { type: 'string', format: 'uuid' },
+    aircraft_type: { type: 'string' },
     status: STATUS,
-    update_date: { type: 'string', format: 'date-time' },
   },
-  required: ['id', 'type_id', 'status', 'update_date'],
+  required: ['aircraft_id', 'aircraft_type', 'status'],
+};
+
+const AircraftList = {
+  type: 'object',
+  properties: { aircraft: { type: 'array', items: ref('AircraftListItem') } },
+  required: ['aircraft'],
+};
+
+const AircraftLiveItem = {
+  type: 'object',
+  properties: {
+    aircraft_id: { type: 'string', format: 'uuid' },
+    aircraft_type: { type: 'string' },
+    status: STATUS,
+    location: { ...ref('LngLat'), nullable: true },
+    altitude: { type: 'integer', nullable: true },
+    heading_degrees: { type: 'number', nullable: true },
+    update_date: { type: 'string', format: 'date-time', nullable: true },
+  },
+  required: ['aircraft_id', 'aircraft_type', 'status'],
+};
+
+const AircraftLiveList = {
+  type: 'object',
+  properties: { aircraft: { type: 'array', items: ref('AircraftLiveItem') } },
+  required: ['aircraft'],
 };
 
 const AircraftCreate = {
@@ -32,12 +54,54 @@ const AircraftUpdate = {
   properties: { type_id: { type: 'string', format: 'uuid' }, status: STATUS },
 };
 
-const PathHistory = {
+const AircraftUpdateResult = {
+  type: 'object',
+  properties: { ok: { type: 'boolean' }, update_date: { type: 'string', format: 'date-time' } },
+  required: ['ok', 'update_date'],
+};
+
+const PathPoint = {
   type: 'object',
   properties: {
-    id: { type: 'integer' },
+    location: ref('LngLat'),
+    altitude: { type: 'integer', nullable: true },
+    heading_degrees: { type: 'number', nullable: true },
+    update_date: { type: 'string', format: 'date-time' },
+  },
+};
+
+const PathResult = {
+  type: 'object',
+  properties: {
     aircraft_id: { type: 'string', format: 'uuid' },
-    location: { $ref: '#/components/schemas/GeoJsonPoint' },
+    points: { type: 'array', items: ref('PathPoint') },
+  },
+  required: ['aircraft_id', 'points'],
+};
+
+const TrackPoint = {
+  type: 'object',
+  properties: {
+    location: ref('LngLat'),
+    altitude: { type: 'integer', nullable: true },
+    update_date: { type: 'string', format: 'date-time' },
+  },
+};
+
+const TrackResult = {
+  type: 'object',
+  properties: {
+    aircraft_id: { type: 'string', format: 'uuid' },
+    points: { type: 'array', items: ref('TrackPoint') },
+  },
+  required: ['aircraft_id', 'points'],
+};
+
+const PathHistoryBatchPoint = {
+  type: 'object',
+  properties: {
+    aircraft_id: { type: 'string', format: 'uuid' },
+    location: ref('LngLat'),
     altitude: { type: 'integer' },
     horizontal_speed_mps: { type: 'number' },
     vertical_speed_mps: { type: 'number' },
@@ -45,86 +109,122 @@ const PathHistory = {
     position_accuracy_m: { type: 'number' },
     update_date: { type: 'string', format: 'date-time' },
   },
-  required: ['id', 'aircraft_id', 'location', 'altitude', 'update_date'],
+  required: ['aircraft_id', 'location'],
 };
 
-const PathHistoryCreate = {
+const PathHistoryBatch = { type: 'array', items: ref('PathHistoryBatchPoint') };
+
+const PathHistoryBatchResult = {
   type: 'object',
-  properties: {
-    location: { $ref: '#/components/schemas/GeoJsonPoint' },
-    altitude: { type: 'integer' },
-    horizontal_speed_mps: { type: 'number' },
-    vertical_speed_mps: { type: 'number' },
-    heading_degrees: { type: 'number' },
-    position_accuracy_m: { type: 'number' },
-  },
-  required: ['location', 'altitude', 'horizontal_speed_mps', 'vertical_speed_mps', 'heading_degrees', 'position_accuracy_m'],
+  properties: { inserted: { type: 'integer' } },
+  required: ['inserted'],
 };
 
-// GeoJsonPoint is also declared by the targets fragment; identical definitions
-// merge harmlessly. Repeated here so this fragment is self-sufficient.
-const GeoJsonPoint = {
-  type: 'object',
-  properties: {
-    type: { type: 'string', enum: ['Point'] },
-    coordinates: { type: 'array', items: { type: 'number' }, minItems: 2, maxItems: 2 },
-  },
-  required: ['type', 'coordinates'],
-};
-
-const aircraftIdParam = { name: 'aircraftId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } };
+const idParam = { name: 'aircraft_id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } };
 
 export const aircraftOpenapi: OpenapiFragment = {
   tags: [{ name: 'aircraft', description: 'Aircraft fleet & telemetry' }],
-  schemas: { Aircraft, AircraftCreate, AircraftUpdate, PathHistory, PathHistoryCreate, GeoJsonPoint },
+  schemas: {
+    AircraftListItem,
+    AircraftList,
+    AircraftLiveItem,
+    AircraftLiveList,
+    AircraftCreate,
+    AircraftUpdate,
+    AircraftUpdateResult,
+    PathPoint,
+    PathResult,
+    TrackPoint,
+    TrackResult,
+    PathHistoryBatchPoint,
+    PathHistoryBatch,
+    PathHistoryBatchResult,
+  },
   paths: {
-    ...crudPaths({
-      base: '/aircraft',
-      tag: 'aircraft',
-      label: 'aircraft',
-      resource: 'Aircraft',
-      createSchema: 'AircraftCreate',
-      updateSchema: 'AircraftUpdate',
-      sortable: ['update_date', 'status'],
-      listFilters: [
-        { name: 'status', in: 'query', schema: STATUS },
-        { name: 'type_id', in: 'query', schema: { type: 'string', format: 'uuid' } },
-      ],
-    }),
-    '/aircraft/{aircraftId}/path-history': {
+    '/api/aircraft': {
       get: {
         tags: ['aircraft'],
-        summary: 'List path history (with date range)',
-        parameters: [
-          aircraftIdParam,
-          ...listQueryParams(['update_date', 'altitude']),
-          { name: 'from', in: 'query', schema: { type: 'string', format: 'date-time' } },
-          { name: 'to', in: 'query', schema: { type: 'string', format: 'date-time' } },
-        ],
+        summary: 'List aircraft (e.g. ?status=free)',
+        parameters: [{ name: 'status', in: 'query', schema: STATUS }],
         responses: {
-          '200': { description: 'Page of path-history points', content: jsonContent(listResponseSchema('PathHistory')) },
-          ...errorResponses('400', '401', '403', '404'),
+          '200': { description: 'Aircraft', content: jsonContent(ref('AircraftList')) },
+          ...errorResponses('400', '401', '403'),
         },
       },
       post: {
         tags: ['aircraft'],
-        summary: 'Append a path-history point',
-        parameters: [aircraftIdParam],
-        requestBody: { required: true, content: jsonContent(ref('PathHistoryCreate')) },
+        summary: 'Create an aircraft (internal)',
+        requestBody: { required: true, content: jsonContent(ref('AircraftCreate')) },
+        responses: { '201': { description: 'Created' }, ...errorResponses('400', '401', '403', '404') },
+      },
+    },
+    '/api/aircraft/live': {
+      get: {
+        tags: ['aircraft'],
+        summary: 'All drones, latest position each',
+        parameters: [{ name: 'status', in: 'query', schema: STATUS }],
         responses: {
-          '201': { description: 'Created', content: jsonContent(ref('PathHistory')) },
+          '200': { description: 'Live aircraft', content: jsonContent(ref('AircraftLiveList')) },
+          ...errorResponses('400', '401', '403'),
+        },
+      },
+    },
+    '/api/aircraft/path-history-batch': {
+      post: {
+        tags: ['aircraft'],
+        summary: 'Bulk write drone position data',
+        requestBody: { required: true, content: jsonContent(ref('PathHistoryBatch')) },
+        responses: {
+          '201': { description: 'Inserted', content: jsonContent(ref('PathHistoryBatchResult')) },
+          ...errorResponses('400', '401', '403'),
+        },
+      },
+    },
+    '/api/aircraft/{aircraft_id}': {
+      patch: {
+        tags: ['aircraft'],
+        summary: 'Update drone metadata',
+        parameters: [idParam],
+        requestBody: { required: true, content: jsonContent(ref('AircraftUpdate')) },
+        responses: {
+          '200': { description: 'Updated', content: jsonContent(ref('AircraftUpdateResult')) },
+          ...errorResponses('400', '401', '403', '404'),
+        },
+      },
+      delete: {
+        tags: ['aircraft'],
+        summary: 'Delete an aircraft (internal)',
+        parameters: [idParam],
+        responses: { '204': { description: 'Deleted' }, ...errorResponses('401', '403', '404', '409') },
+      },
+    },
+    '/api/aircraft/{aircraft_id}/path': {
+      get: {
+        tags: ['aircraft'],
+        summary: 'Path history up to a point (?limit= or ?until=)',
+        parameters: [
+          idParam,
+          { name: 'limit', in: 'query', schema: { type: 'integer' } },
+          { name: 'until', in: 'query', schema: { type: 'string', format: 'date-time' } },
+        ],
+        responses: {
+          '200': { description: 'Path', content: jsonContent(ref('PathResult')) },
           ...errorResponses('400', '401', '403', '404'),
         },
       },
     },
-    '/aircraft/{aircraftId}/latest-position': {
+    '/api/aircraft/{aircraft_id}/track': {
       get: {
         tags: ['aircraft'],
-        summary: 'Latest position by most-recent update_date',
-        parameters: [aircraftIdParam],
+        summary: 'Full track for debrief (?from=&to=)',
+        parameters: [
+          idParam,
+          { name: 'from', in: 'query', schema: { type: 'string', format: 'date-time' } },
+          { name: 'to', in: 'query', schema: { type: 'string', format: 'date-time' } },
+        ],
         responses: {
-          '200': { description: 'Latest path-history point', content: jsonContent(ref('PathHistory')) },
-          ...errorResponses('401', '403', '404'),
+          '200': { description: 'Track', content: jsonContent(ref('TrackResult')) },
+          ...errorResponses('400', '401', '403', '404'),
         },
       },
     },

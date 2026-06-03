@@ -34,7 +34,7 @@ export const permissionsOpenapi: OpenapiFragment = {
   tags: [{ name: 'permissions', description: 'Permission catalogue (enum-keyed)' }],
   schemas: { Permission, PermissionCreate },
   paths: {
-    '/permissions': {
+    '/api/permissions': {
       get: {
         tags: ['permissions'],
         summary: 'List permissions',
@@ -54,7 +54,7 @@ export const permissionsOpenapi: OpenapiFragment = {
         },
       },
     },
-    '/permissions/{permission}': {
+    '/api/permissions/{permission}': {
       get: {
         tags: ['permissions'],
         summary: 'Get a permission',

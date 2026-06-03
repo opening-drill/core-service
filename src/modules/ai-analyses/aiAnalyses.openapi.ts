@@ -30,7 +30,7 @@ export const aiAnalysesOpenapi: OpenapiFragment = {
   tags: [{ name: 'ai-analysis', description: 'AI analysis results' }],
   schemas: { AiAnalysis, AiAnalysisCreate },
   paths: {
-    '/ai-analysis': {
+    '/api/ai-analysis': {
       get: {
         tags: ['ai-analysis'],
         summary: 'List AI analyses',
@@ -53,7 +53,7 @@ export const aiAnalysesOpenapi: OpenapiFragment = {
         },
       },
     },
-    '/ai-analysis/{id}': {
+    '/api/ai-analysis/{id}': {
       get: {
         tags: ['ai-analysis'],
         summary: 'Get an AI analysis',

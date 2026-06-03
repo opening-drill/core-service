@@ -1,5 +1,7 @@
 import { prisma } from '../../lib/prisma.js';
+import { resolveUsernameToId } from '../../lib/userIdentity.js';
 import { HttpError } from '../../middleware/errorHandler.js';
+import type { UserRoleCreate } from './userRoles.schema.js';
 
 interface RoleAssignmentView {
   role_id: string;
@@ -7,23 +9,27 @@ interface RoleAssignmentView {
   assigned_at: Date;
 }
 
-async function ensureUserActive(userId: string): Promise<void> {
-  const user = await prisma.user.findFirst({ where: { id: userId, delete_date: null }, select: { id: true } });
-  if (!user) throw new HttpError(404, 'User not found');
+/** Contract assign result (POST /api/users/:user_id/roles). */
+interface RoleAssignmentResult {
+  user_id: string;
+  role_id: string;
+  created_at: Date;
 }
 
-async function ensureRoleActive(roleId: string): Promise<{ name: string }> {
-  const role = await prisma.role.findFirst({
-    where: { id: roleId, delete_date: null },
-    select: { name: true },
-  });
+async function ensureRoleActive(roleId: string): Promise<void> {
+  const role = await prisma.role.findFirst({ where: { id: roleId, delete_date: null }, select: { id: true } });
   if (!role) throw new HttpError(404, 'Role not found');
-  return role;
+}
+
+async function resolveRoleNameToId(name: string): Promise<string> {
+  const role = await prisma.role.findFirst({ where: { name, delete_date: null }, select: { id: true } });
+  if (!role) throw new HttpError(404, `Role ${name} not found`);
+  return role.id;
 }
 
 export const userRolesService = {
-  async list(userId: string): Promise<RoleAssignmentView[]> {
-    await ensureUserActive(userId);
+  async list(username: string): Promise<RoleAssignmentView[]> {
+    const userId = await resolveUsernameToId(username);
     const assignments = await prisma.userRole.findMany({
       where: { user_id: userId, delete_date: null, role: { delete_date: null } },
       select: { role_id: true, create_date: true, role: { select: { name: true } } },
@@ -32,9 +38,15 @@ export const userRolesService = {
     return assignments.map((a) => ({ role_id: a.role_id, name: a.role.name, assigned_at: a.create_date }));
   },
 
-  async assign(userId: string, roleId: string): Promise<RoleAssignmentView> {
-    await ensureUserActive(userId);
-    const role = await ensureRoleActive(roleId);
+  async assign(username: string, input: UserRoleCreate): Promise<RoleAssignmentResult> {
+    const userId = await resolveUsernameToId(username);
+    let roleId: string;
+    if (input.role_id !== undefined) {
+      await ensureRoleActive(input.role_id);
+      roleId = input.role_id;
+    } else {
+      roleId = await resolveRoleNameToId(input.role_name as string);
+    }
 
     const active = await prisma.userRole.findFirst({
       where: { user_id: userId, role_id: roleId, delete_date: null },
@@ -60,10 +72,11 @@ export const userRolesService = {
           select: { role_id: true, create_date: true },
         });
 
-    return { role_id: row.role_id, name: role.name, assigned_at: row.create_date };
+    return { user_id: username, role_id: row.role_id, created_at: row.create_date };
   },
 
-  async remove(userId: string, roleId: string): Promise<void> {
+  async remove(username: string, roleId: string): Promise<void> {
+    const userId = await resolveUsernameToId(username);
     const result = await prisma.userRole.updateMany({
       where: { user_id: userId, role_id: roleId, delete_date: null },
       data: { delete_date: new Date() },

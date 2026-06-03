@@ -161,7 +161,7 @@ model Aircraft {
 model AircraftPathHistory {
   id                   Int      @id @default(autoincrement())
   aircraft_id          String   @db.Uuid
-  location             Json
+  location             Json // Path: [[lng, lat], ...]
   altitude             Int?
   horizontal_speed_mps Float?
   vertical_speed_mps   Float?
@@ -207,17 +207,9 @@ enum Zone {
   GAZA_SOUTH
   GAZA_CENTER
   GAZA_NORTH
-  BEER_SHEVA
-  TEL_AVIV
-  TZRIFIN
-  SYRIA
-  IRAQ
-  YEMEN
-  JORDAN
-  EGYPT
-  IRAN
-  LEBANON_SOUTH
-  LEBANON_NORTH
+  ISRAEL_NORTH
+  ISRAEL_CENTER
+  ISRAEL_SOUTH
 }
 
 enum TargetStatus {
@@ -228,5 +220,4 @@ enum TargetStatus {
 enum AircraftStatus {
   BUSY
   FREE
-  BROKEN
 }

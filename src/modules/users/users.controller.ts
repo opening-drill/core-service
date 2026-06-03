@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 
 import { getParam, getQuery } from '../../middleware/validate.js';
 import { usersService } from './users.service.js';
-import type { UserCreate, UserUpdate } from './users.schema.js';
+import type { UserAuth, UserCreate, UserUpdate } from './users.schema.js';
 import { userListQuerySchema } from './users.schema.js';
 
 export const usersController = {
@@ -26,5 +26,15 @@ export const usersController = {
   async remove(req: Request, res: Response): Promise<void> {
     await usersService.remove(getParam(req, 'id'));
     res.status(204).end();
+  },
+
+  /** GET /api/users/:user_id/permissions */
+  async permissions(req: Request, res: Response): Promise<void> {
+    res.json(await usersService.permissions(getParam(req, 'userId')));
+  },
+
+  /** POST /api/users/auth — authenticate by username + password. */
+  async authenticate(req: Request, res: Response): Promise<void> {
+    res.json(await usersService.authenticate(req.body as UserAuth));
   },
 };

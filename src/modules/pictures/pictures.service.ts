@@ -4,8 +4,8 @@ import { prisma } from '../../lib/prisma.js';
 import { buildListResult, toPrismaList } from '../../lib/query.js';
 import { withPrismaErrors } from '../../lib/prismaErrors.js';
 import { HttpError } from '../../middleware/errorHandler.js';
-import { createDownloadUrl, createUploadUrl, type DownloadUrl, type UploadUrl } from '../../storage/pictures.storage.js';
-import type { PictureCreate, PictureListQuery, PictureUploadIntent } from './pictures.schema.js';
+import { createDownloadUrl, uploadPicture, type DownloadUrl } from '../../storage/pictures.storage.js';
+import type { PictureListQuery } from './pictures.schema.js';
 
 export const picturesService = {
   async list(query: PictureListQuery) {
@@ -28,25 +28,21 @@ export const picturesService = {
     return picture;
   },
 
-  /** Phase 1: hand the client a pre-signed PUT URL + the identifiers to record. */
-  async createUploadIntent(input: PictureUploadIntent): Promise<UploadUrl> {
-    return createUploadUrl(input.file_name, input.content_type);
-  },
-
-  /** Phase 3: persist the picture row after the client uploaded the bytes. */
-  async confirm(input: PictureCreate) {
+  /** Uploads the bytes to S3 server-side and persists the picture row. */
+  async upload(input: { buffer: Buffer; fileName: string; contentType: string }) {
+    const uploaded = await uploadPicture(input);
     return prisma.picture.create({
       data: {
-        file_name: input.file_name,
-        s3_object_id: input.s3_object_id,
-        s3_bucket_id: input.s3_bucket_id,
+        file_name: uploaded.file_name,
+        s3_object_id: uploaded.s3_object_id,
+        s3_bucket_id: uploaded.s3_bucket_id,
       },
     });
   },
 
-  async getDownloadUrl(id: string): Promise<DownloadUrl> {
+  async getDownloadUrl(id: string, expiresIn?: number): Promise<DownloadUrl> {
     const picture = await this.getById(id);
-    return createDownloadUrl(picture.s3_object_id);
+    return createDownloadUrl(picture.s3_object_id, expiresIn);
   },
 
   async remove(id: string) {
