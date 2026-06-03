@@ -9,14 +9,10 @@ import { pathToLngLatArray, type LngLat } from '../../geo/geo.js';
 /** GET /api/aircraft/:aircraft_id/path point. */
 export function toContractPathPoint(p: AircraftPathHistory): {
   location: LngLat[];
-  altitude: number | null;
-  heading_degrees: number | null;
   update_date: Date;
 } {
   return {
     location: pathToLngLatArray(p.location),
-    altitude: p.altitude,
-    heading_degrees: p.heading_degrees,
     update_date: p.update_date,
   };
 }
@@ -24,13 +20,10 @@ export function toContractPathPoint(p: AircraftPathHistory): {
 /** GET /api/aircraft/:aircraft_id/track point (debrief). */
 export function toContractTrackPoint(p: AircraftPathHistory): {
   location: LngLat[];
-  altitude: number | null;
   update_date: Date;
 } {
   return {
     location: pathToLngLatArray(p.location),
-    altitude: p.altitude,
     update_date: p.update_date,
   };
 }
-

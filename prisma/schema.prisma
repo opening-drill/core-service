@@ -159,15 +159,10 @@ model Aircraft {
 }
 
 model AircraftPathHistory {
-  id                   Int      @id @default(autoincrement())
-  aircraft_id          String   @db.Uuid
-  location             Json // Path: [[lng, lat], ...]
-  altitude             Int?
-  horizontal_speed_mps Float?
-  vertical_speed_mps   Float?
-  heading_degrees      Float?
-  position_accuracy_m  Float?
-  update_date          DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  aircraft_id String   @db.Uuid
+  location    Json // Path: [[lng, lat], ...]
+  update_date DateTime @updatedAt
 
   aircraft Aircraft @relation(fields: [aircraft_id], references: [id])
 

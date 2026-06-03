@@ -8,7 +8,7 @@
  */
 import { Prisma } from '@prisma/client';
 
-import { pointToLngLat, type LngLat } from '../../geo/geo.js';
+import { pathToLngLatArray, pointToLngLat, type LngLat } from '../../geo/geo.js';
 import { toContractEnum } from '../../lib/enumCase.js';
 
 /** Detail (GET /api/events/:event_id). */
@@ -101,7 +101,7 @@ export function toAiContext(event: AiContextEvent, aircrafts: AiContextAircraft[
     aircrafts: Array<{
       aircraft_id: string;
       aircraft_type: string;
-      path_history: Array<{ timestamp: Date; location: LngLat }>;
+      path_history: Array<{ timestamp: Date; location: LngLat[] }>;
     }>;
   };
 } {
@@ -118,7 +118,7 @@ export function toAiContext(event: AiContextEvent, aircrafts: AiContextAircraft[
         aircraft_type: a.type.name,
         path_history: a.path_history.map((p) => ({
           timestamp: p.update_date,
-          location: pointToLngLat(p.location),
+          location: pathToLngLatArray(p.location),
         })),
       })),
     },
