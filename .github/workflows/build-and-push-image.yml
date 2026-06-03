@@ -12,7 +12,7 @@ permissions:
 env:
   REGISTRY_REGION: us-central1
   REGISTRY: us-central1-docker.pkg.dev
-  GCP_PROJECT_ID: 1015949672422
+  GCP_PROJECT_ID: openning-drill
   IMAGE_NAME: core-service
 
 jobs:

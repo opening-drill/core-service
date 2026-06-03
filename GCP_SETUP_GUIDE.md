@@ -10,6 +10,16 @@ This document explains how to set up the GitHub Actions workflow to authenticate
 
 ## Step 1: Enable Required GCP APIs
 
+**PowerShell:**
+```powershell
+gcloud services enable `
+  artifactregistry.googleapis.com `
+  cloudresourcemanager.googleapis.com `
+  iamcredentials.googleapis.com `
+  sts.googleapis.com
+```
+
+**Bash:**
 ```bash
 gcloud services enable \
   artifactregistry.googleapis.com \
@@ -22,11 +32,20 @@ gcloud services enable \
 
 Create a repository in Artifact Registry to store your Docker images:
 
+**PowerShell:**
+```powershell
+gcloud artifacts repositories create core-service `
+  --repository-format=docker `
+  --location=us-central1 `
+  --project=openning-drill
+```
+
+**Bash:**
 ```bash
 gcloud artifacts repositories create core-service \
   --repository-format=docker \
   --location=us-central1 \
-  --project=1015949672422
+  --project=openning-drill
 ```
 
 ## Step 3: Set Up Workload Identity Federation (WIF)
@@ -35,31 +54,63 @@ Workload Identity Federation allows GitHub Actions to authenticate to GCP withou
 
 ### 3a. Create a Workload Identity Provider
 
+**PowerShell:**
+```powershell
+gcloud iam workload-identity-pools create github-pool `
+  --project=openning-drill `
+  --location=global `
+  --display-name="GitHub Actions Pool"
+```
+
+**Bash:**
 ```bash
 gcloud iam workload-identity-pools create github-pool \
-  --project=1015949672422 \
+  --project=openning-drill \
   --location=global \
   --display-name="GitHub Actions Pool"
 ```
 
 ### 3b. Create a Workload Identity Provider (OIDC)
 
+**PowerShell:**
+```powershell
+gcloud iam workload-identity-pools providers create-oidc github `
+  --project=openning-drill `
+  --location=global `
+  --workload-identity-pool=github-pool `
+  --display-name="GitHub OIDC Provider" `
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" `
+  --issuer-uri=https://token.actions.githubusercontent.com `
+  --attribute-condition="assertion.repository == 'openning-drill/core-service'"
+```
+
+**Bash:**
 ```bash
 gcloud iam workload-identity-pools providers create-oidc github \
-  --project=1015949672422 \
+  --project=openning-drill \
   --location=global \
   --workload-identity-pool=github-pool \
   --display-name="GitHub OIDC Provider" \
-  --attribute-mapping="google.subject=assertion.sub,assertion.aud=assertion.aud,assertion.repository=assertion.repository" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository" \
   --issuer-uri=https://token.actions.githubusercontent.com \
-  --attribute-condition="assertion.repository == 'opening-drill/core-service'"
+  --attribute-condition="assertion.repository == 'openning-drill/core-service'"
 ```
 
 ### 3c. Get the Workload Identity Provider Resource Name
 
+**PowerShell:**
+```powershell
+gcloud iam workload-identity-pools providers describe github `
+  --project=openning-drill `
+  --location=global `
+  --workload-identity-pool=github-pool `
+  --format="value(name)"
+```
+
+**Bash:**
 ```bash
 gcloud iam workload-identity-pools providers describe github \
-  --project=1015949672422 \
+  --project=openning-drill \
   --location=global \
   --workload-identity-pool=github-pool \
   --format="value(name)"
@@ -73,28 +124,54 @@ projects/1015949672422/locations/global/workloadIdentityPools/github-pool/provid
 
 ## Step 4: Create a Service Account
 
+**PowerShell:**
+```powershell
+gcloud iam service-accounts create github-actions `
+  --project=openning-drill `
+  --display-name="GitHub Actions Service Account"
+```
+
+**Bash:**
 ```bash
 gcloud iam service-accounts create github-actions \
-  --project=1015949672422 \
+  --project=openning-drill \
   --display-name="GitHub Actions Service Account"
 ```
 
 ## Step 5: Grant Artifact Registry Permissions
 
+**PowerShell:**
+```powershell
+gcloud projects add-iam-policy-binding openning-drill `
+  --member=serviceAccount:github-actions@openning-drill.iam.gserviceaccount.com `
+  --role=roles/artifactregistry.writer
+```
+
+**Bash:**
 ```bash
-gcloud projects add-iam-policy-binding 1015949672422 \
-  --member=serviceAccount:github-actions@1015949672422.iam.gserviceaccount.com \
+gcloud projects add-iam-policy-binding openning-drill \
+  --member=serviceAccount:github-actions@openning-drill.iam.gserviceaccount.com \
   --role=roles/artifactregistry.writer
 ```
 
 ## Step 6: Grant Workload Identity User Role
 
+**PowerShell:**
+```powershell
+gcloud iam service-accounts add-iam-policy-binding `
+  github-actions@openning-drill.iam.gserviceaccount.com `
+  --project=openning-drill `
+  --role=roles/iam.workloadIdentityUser `
+  --member="principalSet://iam.googleapis.com/projects/openning-drill/locations/global/workloadIdentityPools/github-pool/attribute.repository/openning-drill/core-service"
+```
+
+**Bash:**
 ```bash
 gcloud iam service-accounts add-iam-policy-binding \
-  github-actions@1015949672422.iam.gserviceaccount.com \
-  --project=1015949672422 \
+  github-actions@openning-drill.iam.gserviceaccount.com \
+  --project=openning-drill \
   --role=roles/iam.workloadIdentityUser \
-  --member="principalSet://iam.googleapis.com/projects/1015949672422/locations/global/workloadIdentityPools/github-pool/attribute.repository/opening-drill/core-service"
+  --member="principalSet://iam.googleapis.com/projects/openning-drill/locations/global/workloadIdentityPools/github-pool/attribute.repository/openning-drill/core-service"
 ```
 
 ## Step 7: Add GitHub Secrets
@@ -104,12 +181,12 @@ Add the following secrets to your GitHub repository (Settings → Secrets and va
 1. **`WIF_PROVIDER`**: The Workload Identity Provider resource name from Step 3c
 
    ```
-   projects/1015949672422/locations/global/workloadIdentityPools/github-pool/providers/github
+   projects/openning-drill/locations/global/workloadIdentityPools/github-pool/providers/github
    ```
 
 2. **`WIF_SERVICE_ACCOUNT`**: The service account email
    ```
-   github-actions@1015949672422.iam.gserviceaccount.com
+   github-actions@openning-drill.iam.gserviceaccount.com
    ```
 
 ## Step 8: Test the Workflow
@@ -123,9 +200,16 @@ Add the following secrets to your GitHub repository (Settings → Secrets and va
 
 Once the workflow succeeds, verify the image was pushed:
 
+**PowerShell:**
+```powershell
+gcloud artifacts docker images list us-central1-docker.pkg.dev/openning-drill/core-service `
+  --project=openning-drill
+```
+
+**Bash:**
 ```bash
-gcloud artifacts docker images list us-central1-docker.pkg.dev/1015949672422/core-service \
-  --project=1015949672422
+gcloud artifacts docker images list us-central1-docker.pkg.dev/openning-drill/core-service \
+  --project=openning-drill
 ```
 
 Or view it in the GCP Console:
