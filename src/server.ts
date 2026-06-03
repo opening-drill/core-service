@@ -8,7 +8,7 @@ import { logger } from './lib/logger.js';
 function main(): void {
   const app = createApp();
 
-  const server: Server = app.listen(env.PORT, () => {
+  const server: Server = app.listen(env.PORT, "0.0.0.0", () => {
     logger.info(
       { port: env.PORT, env: env.NODE_ENV },
       `Core service listening on http://localhost:${String(env.PORT)} (docs at /docs)`,
