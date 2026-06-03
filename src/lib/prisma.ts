@@ -28,32 +28,3 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 export { prisma };
-
-/**
- * GeoJSON Zod Schemas & Types
- * Since location/area columns are stored as JSON in the database,
- * these Zod schemas validate coordinates and structures to comply with the GeoJSON standard (RFC 7946).
- */
-
-export const GeoJsonPointSchema = z.object({
-  type: z.literal('Point'),
-  coordinates: z.tuple([z.number(), z.number()]), // [longitude, latitude]
-});
-
-export type GeoJsonPoint = z.infer<typeof GeoJsonPointSchema>;
-
-export const GeoJsonPathSchema = z.array(// TODO: Use for history
-  z.tuple([z.number(), z.number()]),
-);
-
-export type GeoJsonPath = z.infer<typeof GeoJsonPathSchema>;
-
-export const GeoJsonPolygonSchema = z.object({
-  type: z.literal('Polygon'),
-  coordinates: z.array(
-    z.array(z.tuple([z.number(), z.number()]))
-      .min(3, { message: 'A polygon must have at least 3 coordinates' })
-  ),
-});
-
-export type GeoJsonPolygon = z.infer<typeof GeoJsonPolygonSchema>;
