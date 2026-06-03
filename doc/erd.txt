@@ -54,7 +54,7 @@ Table polygon {
   name varchar
   area GEOGRAPHY(POLYGON, 4326)
   zone enum [note: 'עזה דרום, עזה צפון וכו']
-  state_duartion integer [note: 'דקות שהפוליגון מסוכן']
+  state_duration integer [note: 'דקות שהפוליגון מסוכן']
   create_date timestamp
   delete_date timestamp
 }

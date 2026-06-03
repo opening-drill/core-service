@@ -1,0 +1,203 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated-client"
+}
+
+model User {
+  id          String    @id @default(uuid()) @db.Uuid
+  full_name   String
+  username    String    @unique
+  password    String
+  create_date DateTime  @default(now())
+  delete_date DateTime?
+
+  user_roles UserRole[]
+  events     Event[]
+
+  @@map("user")
+}
+
+model Role {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  create_date DateTime  @default(now())
+  delete_date DateTime?
+
+  user_roles       UserRole[]
+  role_permissions RolePermission[]
+
+  @@map("role")
+}
+
+model Permission {
+  permission  PermissionType @id
+  create_date DateTime       @default(now())
+  delete_date DateTime?
+
+  role_permissions RolePermission[]
+
+  @@map("permission")
+}
+
+model UserRole {
+  id          Int       @id @default(autoincrement())
+  user_id     String
+  role_id     String    @db.Uuid
+  create_date DateTime  @default(now())
+  delete_date DateTime?
+
+  user User @relation(fields: [user_id], references: [id])
+  role Role @relation(fields: [role_id], references: [id])
+
+  @@map("user_role")
+}
+
+model RolePermission {
+  id          Int            @id @default(autoincrement())
+  role_id     String         @db.Uuid
+  permission  PermissionType
+  create_date DateTime       @default(now())
+  delete_date DateTime?
+
+  role           Role       @relation(fields: [role_id], references: [id])
+  permission_ref Permission @relation(fields: [permission], references: [permission])
+
+  @@map("role_permission")
+}
+
+model Picture {
+  id           String   @id @default(uuid()) @db.Uuid
+  s3_object_id String
+  s3_bucket_id String
+  file_name    String
+  uploaded_at  DateTime @default(now())
+
+  events Event[]
+
+  @@map("picture")
+}
+
+model Polygon {
+  id             String    @id @default(uuid()) @db.Uuid
+  name           String
+  geojson        Json // Polygon
+  zone           Zone
+  state_duration Int
+  create_date    DateTime  @default(now())
+  delete_date    DateTime?
+
+  @@map("polygon")
+}
+
+model Target {
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String
+  location    Json // Point
+  status      TargetStatus
+  create_date DateTime     @default(now())
+  delete_date DateTime?
+
+  events Event[]
+
+  @@map("target")
+}
+
+model Event {
+  id                   String    @id @default(uuid()) @db.Uuid
+  user_id              String    @db.Uuid
+  target_id            String    @db.Uuid
+  aircraft_id          String?   @db.Uuid
+  picture_id           String    @db.Uuid
+  ai_recommendation_id String?   @unique @db.Uuid
+  create_date          DateTime  @default(now())
+  delete_date          DateTime?
+  update_date          DateTime  @updatedAt
+
+  user              User              @relation(fields: [user_id], references: [id])
+  target            Target            @relation(fields: [target_id], references: [id])
+  aircraft          Aircraft?         @relation(fields: [aircraft_id], references: [id])
+  picture           Picture           @relation(fields: [picture_id], references: [id])
+  ai_recommendation AiRecommendation? @relation(fields: [ai_recommendation_id], references: [id])
+
+  @@map("event")
+}
+
+model AircraftType {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  price       Int
+  create_date DateTime  @default(now())
+  delete_date DateTime?
+
+  aircrafts Aircraft[]
+
+  @@map("aircraft_type")
+}
+
+model Aircraft {
+  id          String         @id @default(uuid()) @db.Uuid
+  type_id     String         @db.Uuid
+  status      AircraftStatus
+  update_date DateTime       @updatedAt
+
+  type               AircraftType          @relation(fields: [type_id], references: [id])
+  events             Event[]
+  path_history       AircraftPathHistory[]
+  ai_recommendations AiRecommendation[]
+
+  @@map("aircraft")
+}
+
+model AircraftPathHistory {
+  id                   Int      @id @default(autoincrement())
+  aircraft_id          String   @db.Uuid
+  location             Json
+  altitude             Int
+  horizontal_speed_mps Float
+  vertical_speed_mps   Float
+  heading_degrees      Float
+  position_accuracy_m  Float
+  update_date          DateTime @updatedAt
+
+  aircraft Aircraft @relation(fields: [aircraft_id], references: [id])
+
+  @@map("aircraft_path_history")
+}
+
+model AiRecommendation {
+  id                      String   @id @default(uuid()) @db.Uuid
+  raw_recommendation      String   @db.Text
+  recommended_aircraft_id String   @db.Uuid
+  urgency_level           Float
+  create_date             DateTime @default(now())
+
+  recommended_aircraft Aircraft @relation(fields: [recommended_aircraft_id], references: [id])
+  event                Event?
+
+  @@map("ai_recommendation")
+}
+
+enum PermissionType {
+  EDIT
+  VIEW
+}
+
+enum Zone {
+  GAZA_SOUTH
+  GAZA_NORTH
+}
+
+enum TargetStatus {
+  DESTROYED
+  STANDING
+}
+
+enum AircraftStatus {
+  BUSY
+  FREE
+  BROKEN
+}
