@@ -146,7 +146,7 @@ export const usersOpenapi: OpenapiFragment = {
         parameters: [apiKeyHeaderParam],
         responses: {
           '200': { description: 'API key accepted', content: jsonContent(ref('UserAuthResult')) },
-          ...errorResponses('401', '503'),
+          ...errorResponses('401'),
         },
       },
     },
@@ -161,7 +161,7 @@ export const usersOpenapi: OpenapiFragment = {
         requestBody: { required: true, content: jsonContent(ref('UserSignup')) },
         responses: {
           '201': { description: 'User created', content: jsonContent(ref('UserSignupResult')) },
-          ...errorResponses('400', '401', '409', '503'),
+          ...errorResponses('400', '401', '409'),
         },
       },
     },
