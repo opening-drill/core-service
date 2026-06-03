@@ -14,14 +14,14 @@ import { createApp } from '../../src/app.js';
 import { apiKeyHeader, TEST_API_KEY } from '../helpers/auth.js';
 import { hasTestDb, resetDatabase, seedTestRbac, testPrisma, type SeededRbac } from '../helpers/db.js';
 
-const point = (lng: number, lat: number) => ({ type: 'Point' as const, coordinates: [lng, lat] });
+const pathLocation = (lng: number, lat: number) => [[lng, lat]];
 
 /** The multipart upload needs real object storage; gate that one test on it. */
 const hasObjectStorage = Boolean(
   process.env.GCS_BUCKET ||
-    (process.env.S3_BUCKET &&
-      process.env.S3_ACCESS_KEY_ID &&
-      process.env.S3_SECRET_ACCESS_KEY),
+  (process.env.S3_BUCKET &&
+    process.env.S3_ACCESS_KEY_ID &&
+    process.env.S3_SECRET_ACCESS_KEY),
 );
 
 describe.skipIf(!hasTestDb)('Live-data contract (DB)', () => {
@@ -47,7 +47,7 @@ describe.skipIf(!hasTestDb)('Live-data contract (DB)', () => {
     });
     const aircraft = await prisma.aircraft.create({ data: { type_id: type.id, status } });
     await prisma.aircraftPathHistory.create({
-      data: { aircraft_id: aircraft.id, location: point(lng, lat), altitude: 1200, heading_degrees: 270 },
+      data: { aircraft_id: aircraft.id, location: pathLocation(lng, lat) },
     });
     return { aircraftId: aircraft.id, typeId: type.id };
   }
@@ -119,7 +119,7 @@ describe.skipIf(!hasTestDb)('Live-data contract (DB)', () => {
       (a: { aircraft_id: string }) => a.aircraft_id === freeId,
     );
     expect(ctxAircraft).toMatchObject({ aircraft_type: 'F-15' });
-    expect(ctxAircraft.path_history[0]).toMatchObject({ location: { lng: 34.8, lat: 32.1 } });
+    expect(ctxAircraft.path_history[0]).toMatchObject({ location: [{ lng: 34.8, lat: 32.1 }] });
 
     // 5. AI recommendation (links to the event).
     const rec = await request(app)
@@ -169,11 +169,11 @@ describe.skipIf(!hasTestDb)('Live-data contract (DB)', () => {
 
     const live = await request(app).get('/api/aircraft/live').set(auth);
     const liveRow = live.body.aircraft.find((a: { aircraft_id: string }) => a.aircraft_id === freeId);
-    expect(liveRow).toMatchObject({ aircraft_type: 'F-15', status: 'free', location: { lng: 34.78, lat: 32.08 } });
+    expect(liveRow).toMatchObject({ aircraft_type: 'F-15', status: 'free', location: [{ lng: 34.78, lat: 32.08 }] });
 
     const path = await request(app).get(`/api/aircraft/${freeId}/path?limit=10`).set(auth);
     expect(path.body).toMatchObject({ aircraft_id: freeId });
-    expect(path.body.points[0]).toMatchObject({ location: { lng: 34.78, lat: 32.08 }, altitude: 1200 });
+    expect(path.body.points[0]).toMatchObject({ location: [{ lng: 34.78, lat: 32.08 }] });
 
     const track = await request(app).get(`/api/aircraft/${freeId}/track`).set(auth);
     expect(track.body.points[0]).toMatchObject({ location: { lng: 34.78, lat: 32.08 } });
@@ -182,7 +182,7 @@ describe.skipIf(!hasTestDb)('Live-data contract (DB)', () => {
       .post('/api/aircraft/path-history-batch')
       .set(auth)
       .send([
-        { aircraft_id: freeId, location: { lng: 34.9, lat: 32.2 }, altitude: 1300, update_date: '2026-06-03T12:05:00Z' },
+        { aircraft_id: freeId, location: [{ lng: 34.9, lat: 32.2 }], update_date: '2026-06-03T12:05:00Z' },
       ]);
     expect(batch.status).toBe(201);
     expect(batch.body).toEqual({ inserted: 1 });

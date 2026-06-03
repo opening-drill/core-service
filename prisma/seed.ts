@@ -1,10 +1,12 @@
 /**
- * Seed: baseline RBAC data so the service is usable immediately.
+ * Seed: baseline RBAC data + full fleet roster.
  *
  * Idempotent — safe to re-run. Creates:
  *   - both PermissionType rows (VIEW, EDIT)
  *   - an `admin` role (VIEW + EDIT) and a `viewer` role (VIEW)
  *   - an `admin` user (password bcrypt-hashed)
+ *   - aircraft types (fighters, helicopters, strategic UAVs, tactical drones, loitering munitions)
+ *   - 100+ physical aircraft across the fleet
  *
  * Override the admin credentials with SEED_ADMIN_USERNAME / SEED_ADMIN_PASSWORD.
  */
@@ -43,6 +45,10 @@ async function ensureRolePermission(roleId: string, permission: PermissionType):
 }
 
 async function main(): Promise<void> {
+  // ===================================================================
+  // RBAC baseline
+  // ===================================================================
+
   // Permissions (PK is the enum value).
   for (const permission of [PermissionType.VIEW, PermissionType.EDIT]) {
     await prisma.permission.upsert({
@@ -77,18 +83,29 @@ async function main(): Promise<void> {
     await prisma.userRole.create({ data: { user_id: admin.id, role_id: adminRoleId } });
   }
 
-  // C2 WAR ROOM SYSTEM - MASSIVE AIRCRAFT & TELEMETRY HISTORY SEED
-  const now = new Date();
-  const date30DaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  // ===================================================================
+  // 1. Aircraft types — models & technical specs
+  // ===================================================================
 
   const aircraftTypes = [
-    { id: 'F15I_RAAM', name: 'F-15I רעם', price: 14850, velocity_kmh: 2575.42, payload_kg: 11115.55 },
-    { id: 'F35I_ADIR', name: 'F-35I אדיר', price: 21900, velocity_kmh: 1931.21, payload_kg: 8164.66 },
-    { id: 'F16I_SUFA', name: 'F-16I סופה', price: 9450, velocity_kmh: 2414.08, payload_kg: 5896.72 },
-    { id: 'HERON_TP_EITAN', name: 'Heron TP איתן', price: 4120, velocity_kmh: 407.45, payload_kg: 2687.23 },
-    { id: 'HERMES_900_KOCHAV', name: 'Hermes 900 כוכב', price: 2480, velocity_kmh: 222.41, payload_kg: 348.55 },
-    { id: 'HERMES_450_ZIK', name: 'Hermes 450 זיק', price: 1150, velocity_kmh: 176.28, payload_kg: 178.44 },
-    { id: 'MATRICE_300_STRIKE', name: 'Matrice 300 תוקף', price: 295, velocity_kmh: 82.83, payload_kg: 2.65 }
+    // מטוסי קרב כבדים ורב-משימתיים
+    { id: 'F15I_RAAM',            name: 'F-15I רעם',                  price: 14850, velocity_kmh: 2575.42, payload_kg: 11115.55 },
+    { id: 'F35I_ADIR',            name: 'F-35I אדיר',                 price: 21900, velocity_kmh: 1931.18, payload_kg: 8164.66 },
+    { id: 'F16I_SUFA',            name: 'F-16I סופה',                 price: 9450,  velocity_kmh: 2414.05, payload_kg: 5896.82 },
+    // מסוקי קרב וסער
+    { id: 'APACHE_AH64',          name: 'Apache AH-64 פתן',           price: 11250, velocity_kmh: 265.45,  payload_kg: 771.12 },
+    { id: 'CH54_YASUR',           name: 'CH-53 Yasur יסעור',          price: 8350,  velocity_kmh: 314.85,  payload_kg: 5443.11 },
+    { id: 'BLACKHAWK_YANSHUF',    name: 'UH-60 Black Hawk ינשוף',     price: 5420,  velocity_kmh: 294.32,  payload_kg: 1197.48 },
+    // כטב"מים אסטרטגיים וטקטיים
+    { id: 'HERON_TP_EITAN',       name: 'Heron TP איתן',              price: 4120,  velocity_kmh: 407.55,  payload_kg: 2687.22 },
+    { id: 'HERMES_900_KOCHAV',    name: 'Hermes 900 כוכב',            price: 2480,  velocity_kmh: 222.38,  payload_kg: 348.54 },
+    { id: 'HERMES_450_ZIK',       name: 'Hermes 450 זיק',             price: 1150,  velocity_kmh: 176.25,  payload_kg: 178.44 },
+    { id: 'ORBITER_4',            name: 'Orbiter 4 טקטי',             price: 680,   velocity_kmh: 129.64,  payload_kg: 11.85 },
+    // רחפנים מחומשים, טקטיים וחימוש משוטט
+    { id: 'MATRICE_300_STRIKE',   name: 'Matrice 300 תוקף',           price: 295,   velocity_kmh: 82.85,   payload_kg: 2.65 },
+    { id: 'DJI_AGRAS_HEAVY',      name: 'DJI Agras נשיאה כבדה',       price: 415,   velocity_kmh: 64.22,   payload_kg: 39.45 },
+    { id: 'FPV_RACING_BOMB',      name: 'FPV קוואד מתאבד',            price: 125,   velocity_kmh: 142.74,  payload_kg: 1.15 },
+    { id: 'HAROP_LOITERING',      name: 'Harop חימוש משוטט',          price: 3150,  velocity_kmh: 416.35,  payload_kg: 22.88 },
   ];
 
   for (const type of aircraftTypes) {
@@ -102,43 +119,124 @@ async function main(): Promise<void> {
         price: type.price,
         velocity_kmh: type.velocity_kmh,
         payload_kg: type.payload_kg,
-        create_date: date30DaysAgo,
       }
     });
   }
 
-  const aircraftData = [
-    { id: '201', type_id: 'F15I_RAAM', status: 'FREE', msAgo: 14 * 60 * 1000 },
-    { id: '204', type_id: 'F15I_RAAM', status: 'FREE', msAgo: 3 * 60 * 60 * 1000 },
-    { id: '212', type_id: 'F15I_RAAM', status: 'BUSY', msAgo: 42 * 60 * 1000 },
-    { id: '241', type_id: 'F15I_RAAM', status: 'FREE', msAgo: 8 * 60 * 60 * 1000 },
-    { id: '265', type_id: 'F15I_RAAM', status: 'BROKEN', msAgo: 5 * 60 * 60 * 1000 },
-    { id: '901', type_id: 'F35I_ADIR', status: 'FREE', msAgo: 4 * 60 * 60 * 1000 },
-    { id: '903', type_id: 'F35I_ADIR', status: 'BUSY', msAgo: 48 * 60 * 1000 },
-    { id: '909', type_id: 'F35I_ADIR', status: 'FREE', msAgo: 1 * 60 * 60 * 1000 },
-    { id: '914', type_id: 'F35I_ADIR', status: 'BUSY', msAgo: 5 * 60 * 1000 },
-    { id: '104', type_id: 'F16I_SUFA', status: 'FREE', msAgo: 3 * 60 * 60 * 1000 },
-    { id: '107', type_id: 'F16I_SUFA', status: 'FREE', msAgo: 53 * 60 * 1000 },
-    { id: '115', type_id: 'F16I_SUFA', status: 'BUSY', msAgo: 22 * 60 * 1000 },
-    { id: '402', type_id: 'F16I_SUFA', status: 'FREE', msAgo: 9 * 60 * 60 * 1000 },
-    { id: '459', type_id: 'F16I_SUFA', status: 'BUSY', msAgo: 31 * 60 * 1000 },
-    { id: '803', type_id: 'F16I_SUFA', status: 'BROKEN', msAgo: 2 * 24 * 60 * 60 * 1000 },
+  // ===================================================================
+  // 2. Physical aircraft in the field — 100+ airframes
+  // ===================================================================
 
-    { id: '815', type_id: 'HERON_TP_EITAN', status: 'FREE', msAgo: 5 * 60 * 60 * 1000 },
-    { id: '818', type_id: 'HERON_TP_EITAN', status: 'BUSY', msAgo: 1 * 60 * 60 * 1000 },
-    { id: '840', type_id: 'HERON_TP_EITAN', status: 'BUSY', msAgo: 2 * 60 * 60 * 1000 },
-    { id: '310', type_id: 'HERMES_900_KOCHAV', status: 'FREE', msAgo: 6 * 60 * 60 * 1000 },
-    { id: '325', type_id: 'HERMES_900_KOCHAV', status: 'BUSY', msAgo: 2 * 60 * 60 * 1000 },
-    { id: '352', type_id: 'HERMES_900_KOCHAV', status: 'BUSY', msAgo: 1 * 60 * 60 * 1000 },
-    { id: '401', type_id: 'HERMES_450_ZIK', status: 'BUSY', msAgo: 55 * 60 * 1000 },
-    { id: '415', type_id: 'HERMES_450_ZIK', status: 'FREE', msAgo: 2 * 60 * 60 * 1000 },
-    { id: '441', type_id: 'HERMES_450_ZIK', status: 'BUSY', msAgo: 18 * 60 * 1000 },
+  type AcStatus = 'BUSY' | 'FREE';
 
-    { id: 'DRN-A101', type_id: 'MATRICE_300_STRIKE', status: 'FREE', msAgo: 4 * 60 * 60 * 1000 },
-    { id: 'DRN-A103', type_id: 'MATRICE_300_STRIKE', status: 'BUSY', msAgo: 35 * 60 * 1000 },
-    { id: 'DRN-B203', type_id: 'MATRICE_300_STRIKE', status: 'BROKEN', msAgo: 6 * 60 * 60 * 1000 },
-    { id: 'DRN-B205', type_id: 'MATRICE_300_STRIKE', status: 'BUSY', msAgo: 14 * 60 * 1000 },
-    { id: 'DRN-C302', type_id: 'MATRICE_300_STRIKE', status: 'BUSY', msAgo: 41 * 60 * 1000 }
+  const aircraftData: { id: string; type_id: string; status: AcStatus }[] = [
+    // צי מטוסי קרב (מזהי זנב תלת-ספרתיים)
+    { id: '201',  type_id: 'F15I_RAAM',  status: 'BUSY' },
+    { id: '204',  type_id: 'F15I_RAAM',  status: 'FREE' },
+    { id: '212',  type_id: 'F15I_RAAM',  status: 'FREE' },
+    { id: '219',  type_id: 'F15I_RAAM',  status: 'BUSY' },
+    { id: '901',  type_id: 'F35I_ADIR',  status: 'BUSY' },
+    { id: '903',  type_id: 'F35I_ADIR',  status: 'FREE' },
+    { id: '908',  type_id: 'F35I_ADIR',  status: 'FREE' },
+    { id: '911',  type_id: 'F35I_ADIR',  status: 'BUSY' },
+    { id: '925',  type_id: 'F35I_ADIR',  status: 'FREE' },
+    { id: '402',  type_id: 'F16I_SUFA',  status: 'FREE' },
+    { id: '415',  type_id: 'F16I_SUFA',  status: 'BUSY' },
+    { id: '451',  type_id: 'F16I_SUFA',  status: 'FREE' },
+    { id: '478',  type_id: 'F16I_SUFA',  status: 'FREE' },
+    { id: '499',  type_id: 'F16I_SUFA',  status: 'BUSY' },
+
+    // צי מסוקים
+    { id: '104',  type_id: 'APACHE_AH64',       status: 'FREE' },
+    { id: '112',  type_id: 'APACHE_AH64',       status: 'BUSY' },
+    { id: '128',  type_id: 'APACHE_AH64',       status: 'FREE' },
+    { id: '302',  type_id: 'CH54_YASUR',         status: 'FREE' },
+    { id: '317',  type_id: 'CH54_YASUR',         status: 'BUSY' },
+    { id: '339',  type_id: 'CH54_YASUR',         status: 'FREE' },
+    { id: '505',  type_id: 'BLACKHAWK_YANSHUF',  status: 'FREE' },
+    { id: '514',  type_id: 'BLACKHAWK_YANSHUF',  status: 'BUSY' },
+    { id: '522',  type_id: 'BLACKHAWK_YANSHUF',  status: 'FREE' },
+    { id: '541',  type_id: 'BLACKHAWK_YANSHUF',  status: 'FREE' },
+
+    // צי כטב"מים אסטרטגיים וטקטיים (קידומות UAV)
+    { id: 'UAV-E01',  type_id: 'HERON_TP_EITAN',     status: 'BUSY' },
+    { id: 'UAV-E02',  type_id: 'HERON_TP_EITAN',     status: 'FREE' },
+    { id: 'UAV-E03',  type_id: 'HERON_TP_EITAN',     status: 'FREE' },
+    { id: 'UAV-K11',  type_id: 'HERMES_900_KOCHAV',  status: 'FREE' },
+    { id: 'UAV-K12',  type_id: 'HERMES_900_KOCHAV',  status: 'BUSY' },
+    { id: 'UAV-K13',  type_id: 'HERMES_900_KOCHAV',  status: 'FREE' },
+    { id: 'UAV-K14',  type_id: 'HERMES_900_KOCHAV',  status: 'FREE' },
+    { id: 'UAV-Z21',  type_id: 'HERMES_450_ZIK',     status: 'BUSY' },
+    { id: 'UAV-Z22',  type_id: 'HERMES_450_ZIK',     status: 'FREE' },
+    { id: 'UAV-Z23',  type_id: 'HERMES_450_ZIK',     status: 'FREE' },
+    { id: 'UAV-Z24',  type_id: 'HERMES_450_ZIK',     status: 'BUSY' },
+    { id: 'UAV-Z25',  type_id: 'HERMES_450_ZIK',     status: 'FREE' },
+    { id: 'UAV-O41',  type_id: 'ORBITER_4',          status: 'FREE' },
+    { id: 'UAV-O42',  type_id: 'ORBITER_4',          status: 'FREE' },
+    { id: 'UAV-O43',  type_id: 'ORBITER_4',          status: 'BUSY' },
+
+    // נחיל רחפנים טקטיים ומחומשים (קידומות DRN)
+    { id: 'DRN-M101',  type_id: 'MATRICE_300_STRIKE',  status: 'FREE' },
+    { id: 'DRN-M102',  type_id: 'MATRICE_300_STRIKE',  status: 'BUSY' },
+    { id: 'DRN-M103',  type_id: 'MATRICE_300_STRIKE',  status: 'FREE' },
+    { id: 'DRN-M104',  type_id: 'MATRICE_300_STRIKE',  status: 'FREE' },
+    { id: 'DRN-M105',  type_id: 'MATRICE_300_STRIKE',  status: 'BUSY' },
+    { id: 'DRN-M106',  type_id: 'MATRICE_300_STRIKE',  status: 'FREE' },
+    { id: 'DRN-M107',  type_id: 'MATRICE_300_STRIKE',  status: 'FREE' },
+    { id: 'DRN-M108',  type_id: 'MATRICE_300_STRIKE',  status: 'FREE' },
+    { id: 'DRN-H201',  type_id: 'DJI_AGRAS_HEAVY',     status: 'FREE' },
+    { id: 'DRN-H202',  type_id: 'DJI_AGRAS_HEAVY',     status: 'BUSY' },
+    { id: 'DRN-H203',  type_id: 'DJI_AGRAS_HEAVY',     status: 'FREE' },
+    { id: 'DRN-H204',  type_id: 'DJI_AGRAS_HEAVY',     status: 'FREE' },
+
+    // גל רחפני FPV מהירים/מתאבדים
+    { id: 'FPV-A01',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-A02',  type_id: 'FPV_RACING_BOMB',  status: 'BUSY' },
+    { id: 'FPV-A03',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-A04',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-A05',  type_id: 'FPV_RACING_BOMB',  status: 'BUSY' },
+    { id: 'FPV-A06',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-A07',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-A08',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-A09',  type_id: 'FPV_RACING_BOMB',  status: 'BUSY' },
+    { id: 'FPV-A10',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-B01',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-B02',  type_id: 'FPV_RACING_BOMB',  status: 'BUSY' },
+    { id: 'FPV-B03',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-B04',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-B05',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-B06',  type_id: 'FPV_RACING_BOMB',  status: 'BUSY' },
+    { id: 'FPV-B07',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-B08',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-B09',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-B10',  type_id: 'FPV_RACING_BOMB',  status: 'BUSY' },
+    { id: 'FPV-C01',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-C02',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-C03',  type_id: 'FPV_RACING_BOMB',  status: 'BUSY' },
+    { id: 'FPV-C04',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-C05',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-C06',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-C07',  type_id: 'FPV_RACING_BOMB',  status: 'BUSY' },
+    { id: 'FPV-C08',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-C09',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+    { id: 'FPV-C10',  type_id: 'FPV_RACING_BOMB',  status: 'FREE' },
+
+    // משוטטים אסטרטגיים (מזהי HAR)
+    { id: 'HAR-01',  type_id: 'HAROP_LOITERING',  status: 'FREE' },
+    { id: 'HAR-02',  type_id: 'HAROP_LOITERING',  status: 'BUSY' },
+    { id: 'HAR-03',  type_id: 'HAROP_LOITERING',  status: 'FREE' },
+    { id: 'HAR-04',  type_id: 'HAROP_LOITERING',  status: 'FREE' },
+    { id: 'HAR-05',  type_id: 'HAROP_LOITERING',  status: 'BUSY' },
+    { id: 'HAR-06',  type_id: 'HAROP_LOITERING',  status: 'FREE' },
+    { id: 'HAR-07',  type_id: 'HAROP_LOITERING',  status: 'FREE' },
+    { id: 'HAR-08',  type_id: 'HAROP_LOITERING',  status: 'FREE' },
+    { id: 'HAR-09',  type_id: 'HAROP_LOITERING',  status: 'BUSY' },
+    { id: 'HAR-10',  type_id: 'HAROP_LOITERING',  status: 'FREE' },
+    { id: 'HAR-11',  type_id: 'HAROP_LOITERING',  status: 'FREE' },
+    { id: 'HAR-12',  type_id: 'HAROP_LOITERING',  status: 'FREE' },
+    { id: 'HAR-13',  type_id: 'HAROP_LOITERING',  status: 'BUSY' },
+    { id: 'HAR-14',  type_id: 'HAROP_LOITERING',  status: 'FREE' },
+    { id: 'HAR-15',  type_id: 'HAROP_LOITERING',  status: 'FREE' },
   ];
 
   for (const ac of aircraftData) {
@@ -150,13 +248,12 @@ async function main(): Promise<void> {
       create: {
         id: uuid,
         type_id: typeUuid,
-        status: ac.status as any,
-        update_date: new Date(now.getTime() - ac.msAgo),
+        status: ac.status,
       }
     });
   }
 
-  process.stdout.write(`Seed complete. Admin user: "${username}".\n`);
+  process.stdout.write(`Seed complete. Admin user: "${username}". Aircraft types: ${aircraftTypes.length}. Aircraft: ${aircraftData.length}.\n`);
 }
 
 main()

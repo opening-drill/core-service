@@ -19,18 +19,13 @@ export const aircraftTrackQuerySchema = z.object({
 
 /**
  * Batch position write (contract `pathHistory.insertBatch`). Each point carries
- * its own `aircraft_id` and `{ lng, lat }` location; telemetry fields and
- * `update_date` are optional.
+ * its own `aircraft_id` and a path of `[{ lng, lat }]` locations;
+ * `update_date` is optional.
  */
 export const pathHistoryBatchPointSchema = z
   .object({
     aircraft_id: z.string().uuid(),
     location: z.array(LngLatSchema).min(1).transform(lngLatArrayToPath),
-    altitude: z.number().int().optional(),
-    horizontal_speed_mps: z.number().optional(),
-    vertical_speed_mps: z.number().optional(),
-    heading_degrees: z.number().optional(),
-    position_accuracy_m: z.number().optional(),
     update_date: z.coerce.date().optional(),
   })
   .strict();
@@ -40,15 +35,10 @@ export const pathHistoryBatchSchema = z.array(pathHistoryBatchPointSchema).min(1
 export const pathHistoryCreateSchema = z
   .object({
     location: PathSchema,
-    altitude: z.number().int(),
-    horizontal_speed_mps: z.number(),
-    vertical_speed_mps: z.number(),
-    heading_degrees: z.number(),
-    position_accuracy_m: z.number(),
   })
   .strict();
 
-export const pathHistoryListQuerySchema = buildListQuerySchema(['update_date', 'altitude']).extend({
+export const pathHistoryListQuerySchema = buildListQuerySchema(['update_date']).extend({
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
 });
