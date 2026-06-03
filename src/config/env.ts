@@ -34,9 +34,21 @@ const envSchema = z.object({
   PASSWORD_HASH_MODE: z.enum(['bcrypt', 'plain']).default('bcrypt'),
   BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(15).default(10),
 
-  // S3 / MinIO object storage (picture upload/download via pre-signed URLs).
+  // API authentication — all `/api/*` routes (except public auth/signup checks) require
+  // header `X-Api-Key`. `SIGNUP_API_KEY` is a deprecated alias for `API_KEY`.
+  API_KEY: z.string().min(16).optional(),
+  SIGNUP_API_KEY: z.string().min(16).optional(),
+  SIGNUP_DEFAULT_ROLE_NAME: z.string().min(1).default('viewer'),
+
+  // Object storage (picture upload/download via signed URLs).
+  // Prefer GCS with Application Default Credentials (gcloud locally, SA on GCP).
   // Optional so the skeleton boots without storage; `requireS3Env()` enforces
   // presence at the point of use (see src/lib/s3.ts).
+  GCS_BUCKET: z.string().min(1).optional(),
+  GCS_PROJECT_ID: z.string().min(1).optional(),
+  GCS_PRESIGN_EXPIRY_SECONDS: z.coerce.number().int().positive().default(900),
+
+  // S3 / MinIO fallback (static access keys; used when GCS_BUCKET is unset).
   S3_ENDPOINT: z.string().url().optional(), // set for MinIO; omit for real AWS
   S3_REGION: z.string().default('us-east-1'),
   S3_BUCKET: z.string().min(1).optional(),
@@ -59,7 +71,11 @@ function loadEnv(): Env {
     process.stderr.write(`Invalid environment configuration:\n${issues}\n`);
     process.exit(1);
   }
-  return parsed.data;
+  const data = parsed.data;
+  return {
+    ...data,
+    API_KEY: data.API_KEY ?? data.SIGNUP_API_KEY,
+  };
 }
 
 export const env: Env = loadEnv();

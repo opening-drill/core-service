@@ -1,13 +1,15 @@
 import { Prisma } from '@prisma/client';
 
-import { hashPassword, verifyPassword } from '../../lib/password.js';
+import { env } from '../../config/env.js';
+import { hashPassword } from '../../lib/password.js';
 import { prisma } from '../../lib/prisma.js';
 import { buildListResult, softDeleteWhere, toPrismaList } from '../../lib/query.js';
 import { withPrismaErrors } from '../../lib/prismaErrors.js';
 import { resolveUsernameToId } from '../../lib/userIdentity.js';
 import { loadUserPermissions } from '../../middleware/authorize.js';
 import { HttpError } from '../../middleware/errorHandler.js';
-import type { UserAuth, UserCreate, UserListQuery, UserUpdate } from './users.schema.js';
+import { userRolesService } from '../user-roles/userRoles.service.js';
+import type { UserCreate, UserListQuery, UserSignup, UserUpdate } from './users.schema.js';
 
 /** Fetches a user's active role names + lowercased permissions by internal id. */
 async function loadRolesAndPermissions(
@@ -78,6 +80,35 @@ export const usersService = {
     );
   },
 
+  /**
+   * POST /api/users/signup — creates a user and assigns a role so the account
+   * is stored for reference; API access uses `X-Api-Key` only.
+   */
+  async signup(input: UserSignup) {
+    const user = await this.create({
+      full_name: input.full_name,
+      username: input.username,
+      password: input.password,
+    });
+
+    const roleInput =
+      input.role_id !== undefined
+        ? { role_id: input.role_id }
+        : { role_name: input.role_name ?? env.SIGNUP_DEFAULT_ROLE_NAME };
+
+    await userRolesService.assign(user.username, roleInput);
+    const { roles, permissions } = await loadRolesAndPermissions(user.id);
+
+    return {
+      id: user.id,
+      full_name: user.full_name,
+      username: user.username,
+      user_id: user.username,
+      roles,
+      permissions,
+    };
+  },
+
   async update(id: string, input: UserUpdate) {
     await findActiveOrThrow(id);
     const data: Prisma.UserUpdateInput = {
@@ -101,26 +132,8 @@ export const usersService = {
     return { user_id: username, roles, permissions };
   },
 
-  /**
-   * POST /api/users/auth — verifies username + password and returns the user
-   * with its roles/permissions. Throws 401 on any credential mismatch (and does
-   * not reveal whether the username exists).
-   */
-  async authenticate(input: UserAuth): Promise<{
-    user_id: string;
-    full_name: string;
-    roles: string[];
-    permissions: string[];
-  }> {
-    const user = await prisma.user.findFirst({
-      where: { username: input.username, delete_date: null },
-      select: { id: true, full_name: true, username: true, password: true },
-    });
-    const ok = user !== null && (await verifyPassword(input.password, user.password));
-    if (!user || !ok) {
-      throw new HttpError(401, 'Invalid username or password', undefined, 'UNAUTHORIZED');
-    }
-    const { roles, permissions } = await loadRolesAndPermissions(user.id);
-    return { user_id: user.username, full_name: user.full_name, roles, permissions };
+  /** POST /api/users/auth — confirms `X-Api-Key` was accepted by middleware. */
+  async verifyApiKey(): Promise<{ valid: true }> {
+    return { valid: true };
   },
 };

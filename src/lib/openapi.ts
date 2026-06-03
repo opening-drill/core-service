@@ -97,14 +97,14 @@ export const openapiDocument = {
     description:
       'System of record for the AI aircraft-recommendation platform. ' +
       'Exposes CRUD + lifecycle endpoints for every domain entity. ' +
-      'All endpoints except /health require HTTP Basic auth + RBAC (VIEW for reads, EDIT for writes).',
+      'All `/api/*` endpoints require header `X-Api-Key` (env `API_KEY`).',
   },
   servers: [{ url: '/', description: 'Current host' }],
-  security: [{ basicAuth: [] }],
+  security: [{ apiKey: [] }],
   paths: mergedPaths,
   components: {
     securitySchemes: {
-      basicAuth: { type: 'http', scheme: 'basic' },
+      apiKey: { type: 'apiKey', in: 'header', name: 'X-Api-Key' },
     },
     schemas: mergedSchemas,
   },
