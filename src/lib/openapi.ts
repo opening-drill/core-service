@@ -93,7 +93,7 @@ export const openapiDocument = {
   openapi: '3.0.3',
   info: {
     title: 'Core Service API',
-    version: '0.2.0',
+    version: '0.3.0',
     description:
       'System of record for the AI aircraft-recommendation platform. ' +
       'Exposes CRUD + lifecycle endpoints for every domain entity. ' +
