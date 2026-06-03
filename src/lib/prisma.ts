@@ -1,9 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { z } from 'zod';
 
-// Setup singleton PrismaClient for Prisma 7 with driver adapter
+import { env, isProduction } from '../config/env.js';
+
+// Setup singleton PrismaClient for Prisma 7 with driver adapter.
+// Importing `env` first ensures any local .env file has been loaded before the
+// connection string is resolved.
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
@@ -11,10 +14,10 @@ const globalForPrisma = globalThis as unknown as {
 let prisma: PrismaClient;
 
 const connectionString =
-  process.env.DATABASE_URL ||
+  env.DATABASE_URL ||
   'postgresql://postgres:hashlama020@34.165.129.193:5432/AIrcraft-NP';
 
-if (process.env.NODE_ENV === 'production') {
+if (isProduction) {
   const pool = new Pool({ connectionString });
   const adapter = new PrismaPg(pool);
   prisma = new PrismaClient({ adapter });
@@ -30,24 +33,13 @@ if (process.env.NODE_ENV === 'production') {
 export { prisma };
 
 /**
- * GeoJSON Zod Schemas & Types
- * Since location/area columns are stored as JSON in the database,
- * these Zod schemas validate coordinates and structures to comply with the GeoJSON standard (RFC 7946).
+ * GeoJSON Zod schemas & types live in `src/geo/geo.ts` (the single source of
+ * truth, RFC 7946 with WGS84 bounds). Re-exported here for backward
+ * compatibility with earlier imports.
  */
-
-export const GeoJsonPointSchema = z.object({
-  type: z.literal('Point'),
-  coordinates: z.tuple([z.number(), z.number()]), // [longitude, latitude]
-});
-
-export type GeoJsonPoint = z.infer<typeof GeoJsonPointSchema>;
-
-export const GeoJsonPolygonSchema = z.object({
-  type: z.literal('Polygon'),
-  coordinates: z.array(
-    z.array(z.tuple([z.number(), z.number()]))
-      .min(3, { message: 'A polygon must have at least 3 coordinates' })
-  ),
-});
-
-export type GeoJsonPolygon = z.infer<typeof GeoJsonPolygonSchema>;
+export {
+  GeoJsonPointSchema,
+  GeoJsonPolygonSchema,
+  type GeoJsonPoint,
+  type GeoJsonPolygon,
+} from '../geo/geo.js';

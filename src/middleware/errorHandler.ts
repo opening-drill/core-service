@@ -9,15 +9,40 @@ import { logger } from '../lib/logger.js';
  */
 export class HttpError extends Error {
   readonly statusCode: number;
+  readonly code: string;
   readonly details?: unknown;
 
-  constructor(statusCode: number, message: string, details?: unknown) {
+  /**
+   * @param code Machine-readable error code surfaced as the response `error`
+   *   field (e.g. `NotFound`, `Forbidden`, `Conflict`). Defaults to a name
+   *   derived from the status code.
+   */
+  constructor(statusCode: number, message: string, details?: unknown, code?: string) {
     super(message);
     this.name = 'HttpError';
     this.statusCode = statusCode;
+    this.code = code ?? defaultCodeForStatus(statusCode);
     if (details !== undefined) {
       this.details = details;
     }
+  }
+}
+
+/** Maps common HTTP status codes to a machine-readable error code. */
+function defaultCodeForStatus(status: number): string {
+  switch (status) {
+    case 400:
+      return 'BadRequest';
+    case 401:
+      return 'Unauthorized';
+    case 403:
+      return 'Forbidden';
+    case 404:
+      return 'NotFound';
+    case 409:
+      return 'Conflict';
+    default:
+      return status >= 500 ? 'InternalServerError' : 'Error';
   }
 }
 
@@ -42,7 +67,7 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
 
   if (err instanceof HttpError) {
     res.status(err.statusCode).json({
-      error: err.name,
+      error: err.code,
       message: err.message,
       ...(err.details !== undefined ? { details: err.details } : {}),
     });
