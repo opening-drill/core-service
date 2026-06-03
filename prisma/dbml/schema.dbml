@@ -1,0 +1,209 @@
+//// ------------------------------------------------------
+//// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+//// ------------------------------------------------------
+
+Table user {
+  id String [pk]
+  full_name String [not null]
+  username String [unique, not null]
+  password String [not null]
+  create_date DateTime [default: `now()`, not null]
+  delete_date DateTime
+  user_roles user_role [not null]
+  events event [not null]
+}
+
+Table role {
+  id String [pk]
+  name String [not null]
+  create_date DateTime [default: `now()`, not null]
+  delete_date DateTime
+  user_roles user_role [not null]
+  role_permissions role_permission [not null]
+}
+
+Table permission {
+  permission PermissionType [pk]
+  create_date DateTime [default: `now()`, not null]
+  delete_date DateTime
+  role_permissions role_permission [not null]
+}
+
+Table user_role {
+  id Int [pk, increment]
+  user_id String [not null]
+  role_id String [not null]
+  create_date DateTime [default: `now()`, not null]
+  delete_date DateTime
+  user user [not null]
+  role role [not null]
+}
+
+Table role_permission {
+  id Int [pk, increment]
+  role_id String [not null]
+  permission PermissionType [not null]
+  create_date DateTime [default: `now()`, not null]
+  delete_date DateTime
+  role role [not null]
+  permission_ref permission [not null]
+}
+
+Table picture {
+  id String [pk]
+  s3_object_id String [not null]
+  s3_bucket_id String [not null]
+  file_name String [not null]
+  uploaded_at DateTime [default: `now()`, not null]
+  events event [not null]
+  aiAnalyses ai_analysis [not null]
+}
+
+Table polygon {
+  id String [pk]
+  name String [not null]
+  geojson Json [not null]
+  zone Zone [not null]
+  expiry_date DateTime [not null]
+  create_date DateTime [default: `now()`, not null]
+  delete_date DateTime
+}
+
+Table target {
+  id String [pk]
+  name String [not null]
+  location Json [not null]
+  status TargetStatus [not null]
+  create_date DateTime [default: `now()`, not null]
+  delete_date DateTime
+  events event [not null]
+}
+
+Table event {
+  id String [pk]
+  user_id String [not null]
+  target_id String [not null]
+  aircraft_id String
+  picture_id String [not null]
+  ai_recommendation_id String [unique]
+  create_date DateTime [default: `now()`, not null]
+  delete_date DateTime
+  update_date DateTime [not null]
+  user user [not null]
+  target target [not null]
+  aircraft aircraft
+  picture picture [not null]
+  ai_recommendation ai_recommendation
+}
+
+Table aircraft_type {
+  id String [pk]
+  name String [not null]
+  price Int [not null]
+  payload_kg Float [not null]
+  velocity_kmh Float [not null]
+  create_date DateTime [default: `now()`, not null]
+  delete_date DateTime
+  aircrafts aircraft [not null]
+}
+
+Table aircraft {
+  id String [pk]
+  type_id String [not null]
+  status AircraftStatus [not null]
+  update_date DateTime [not null]
+  type aircraft_type [not null]
+  events event [not null]
+  path_history aircraft_path_history [not null]
+  ai_recommendations ai_recommendation [not null]
+}
+
+Table aircraft_path_history {
+  id Int [pk, increment]
+  aircraft_id String [not null]
+  location Json [not null]
+  altitude Int
+  horizontal_speed_mps Float
+  vertical_speed_mps Float
+  heading_degrees Float
+  position_accuracy_m Float
+  update_date DateTime [not null]
+  aircraft aircraft [not null]
+}
+
+Table ai_analysis {
+  id String [pk]
+  raw_result String [not null]
+  picture_id String [not null]
+  create_date DateTime [default: `now()`, not null]
+  picture picture [not null]
+}
+
+Table ai_recommendation {
+  id String [pk]
+  raw_recommendation String [not null]
+  recommended_aircraft_id String [not null]
+  urgency_level Float [not null]
+  create_date DateTime [default: `now()`, not null]
+  recommended_aircraft aircraft [not null]
+  event event
+}
+
+Enum PermissionType {
+  EDIT
+  VIEW
+}
+
+Enum Zone {
+  GAZA_SOUTH
+  GAZA_CENTER
+  GAZA_NORTH
+  BEER_SHEVA
+  TEL_AVIV
+  TZRIFIN
+  SYRIA
+  IRAQ
+  YEMEN
+  JORDAN
+  EGYPT
+  IRAN
+  LEBANON_SOUTH
+  LEBANON_NORTH
+}
+
+Enum TargetStatus {
+  DESTROYED
+  STANDING
+}
+
+Enum AircraftStatus {
+  BUSY
+  FREE
+  BROKEN
+}
+
+Ref: user_role.user_id > user.id
+
+Ref: user_role.role_id > role.id
+
+Ref: role_permission.role_id > role.id
+
+Ref: role_permission.permission > permission.permission
+
+Ref: event.user_id > user.id
+
+Ref: event.target_id > target.id
+
+Ref: event.aircraft_id > aircraft.id
+
+Ref: event.picture_id > picture.id
+
+Ref: event.ai_recommendation_id - ai_recommendation.id
+
+Ref: aircraft.type_id > aircraft_type.id
+
+Ref: aircraft_path_history.aircraft_id > aircraft.id
+
+Ref: ai_analysis.picture_id > picture.id
+
+Ref: ai_recommendation.recommended_aircraft_id > aircraft.id

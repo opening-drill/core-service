@@ -1,0 +1,30 @@
+import type { Request, Response } from 'express';
+
+import { getParam, getQuery } from '../../middleware/validate.js';
+import { usersService } from './users.service.js';
+import type { UserCreate, UserUpdate } from './users.schema.js';
+import { userListQuerySchema } from './users.schema.js';
+
+export const usersController = {
+  async list(req: Request, res: Response): Promise<void> {
+    const result = await usersService.list(getQuery(req, userListQuerySchema));
+    res.json(result);
+  },
+
+  async getById(req: Request, res: Response): Promise<void> {
+    res.json(await usersService.getById(getParam(req, 'id')));
+  },
+
+  async create(req: Request, res: Response): Promise<void> {
+    res.status(201).json(await usersService.create(req.body as UserCreate));
+  },
+
+  async update(req: Request, res: Response): Promise<void> {
+    res.json(await usersService.update(getParam(req, 'id'), req.body as UserUpdate));
+  },
+
+  async remove(req: Request, res: Response): Promise<void> {
+    await usersService.remove(getParam(req, 'id'));
+    res.status(204).end();
+  },
+};
