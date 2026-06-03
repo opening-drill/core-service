@@ -161,7 +161,7 @@ model Aircraft {
 model AircraftPathHistory {
   id                   Int      @id @default(autoincrement())
   aircraft_id          String   @db.Uuid
-  location             Json
+  location             Json // Path: [[lng, lat], ...]
   altitude             Int?
   horizontal_speed_mps Float?
   vertical_speed_mps   Float?
@@ -220,5 +220,4 @@ enum TargetStatus {
 enum AircraftStatus {
   BUSY
   FREE
-  BROKEN
 }
