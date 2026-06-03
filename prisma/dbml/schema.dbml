@@ -100,8 +100,8 @@ Table aircraft_type {
   id String [pk]
   name String [not null]
   price Int [not null]
-  velocity_kmh Float [not null]
   payload_kg Float [not null]
+  velocity_kmh Float [not null]
   create_date DateTime [default: `now()`, not null]
   delete_date DateTime
   aircrafts aircraft [not null]

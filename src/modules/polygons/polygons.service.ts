@@ -13,8 +13,15 @@ async function findActiveOrThrow(id: string): Promise<void> {
 
 export const polygonsService = {
   async list(query: PolygonListQuery) {
+    // `active=true` → only non-deleted; otherwise fall back to include_deleted.
+    const activeWhere =
+      query.active !== undefined
+        ? query.active
+          ? { delete_date: null }
+          : {}
+        : softDeleteWhere(query.include_deleted);
     const where: Prisma.PolygonWhereInput = {
-      ...softDeleteWhere(query.include_deleted),
+      ...activeWhere,
       ...(query.zone !== undefined ? { zone: query.zone } : {}),
     };
     const { skip, take, orderBy } = toPrismaList(query, 'create_date');
@@ -48,7 +55,7 @@ export const polygonsService = {
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.geojson !== undefined ? { geojson: toGeoJsonInput(input.geojson) } : {}),
       ...(input.zone !== undefined ? { zone: input.zone } : {}),
-      ...(input.state_duration !== undefined ? { state_duration: input.state_duration } : {}),
+      ...(input.expiry_date !== undefined ? { expiry_date: input.expiry_date } : {}),
     };
     return prisma.polygon.update({ where: { id }, data });
   },

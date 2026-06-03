@@ -19,6 +19,17 @@ export const userUpdateSchema = z
 
 export const userIdParamSchema = z.object({ id: z.string().uuid() });
 
+/** `:user_id` path param for permissions/roles is the username, not a UUID. */
+export const userNameParamSchema = z.object({ userId: z.string().min(1) });
+
+/** POST /api/users/auth — credential check. */
+export const userAuthSchema = z
+  .object({
+    username: z.string().min(1),
+    password: z.string().min(1),
+  })
+  .strict();
+
 export const userListQuerySchema = buildListQuerySchema([
   'create_date',
   'username',
@@ -30,3 +41,4 @@ export const userListQuerySchema = buildListQuerySchema([
 export type UserCreate = z.infer<typeof userCreateSchema>;
 export type UserUpdate = z.infer<typeof userUpdateSchema>;
 export type UserListQuery = z.infer<typeof userListQuerySchema>;
+export type UserAuth = z.infer<typeof userAuthSchema>;

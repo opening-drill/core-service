@@ -16,7 +16,7 @@ export const authOpenapi: OpenapiFragment = {
   tags: [{ name: 'auth', description: 'Authenticated identity' }],
   schemas: { Me },
   paths: {
-    '/auth/me': {
+    '/api/auth/me': {
       get: {
         tags: ['auth'],
         summary: 'Current user with effective roles & permissions',

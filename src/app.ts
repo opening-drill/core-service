@@ -17,7 +17,7 @@ import { picturesRouter } from './modules/pictures/pictures.routes.js';
 import { polygonsRouter } from './modules/polygons/polygons.routes.js';
 import { rolesRouter } from './modules/roles/roles.routes.js';
 import { targetsRouter } from './modules/targets/targets.routes.js';
-import { usersRouter } from './modules/users/users.routes.js';
+import { usersAuthRouter, usersRouter } from './modules/users/users.routes.js';
 
 /**
  * Express application factory: wires middleware, the Swagger UI, and routes.
@@ -49,18 +49,22 @@ export function createApp(): Express {
   // Entity modules — each requires an authenticated identity (HTTP Basic);
   // /health, /docs and /openapi.json above stay public. basicAuth is applied
   // per-mount (not globally) so unmatched routes still reach notFoundHandler.
-  app.use('/auth', basicAuth, authRouter);
-  app.use('/users', basicAuth, usersRouter);
-  app.use('/roles', basicAuth, rolesRouter);
-  app.use('/permissions', basicAuth, permissionsRouter);
-  app.use('/polygons', basicAuth, polygonsRouter);
-  app.use('/targets', basicAuth, targetsRouter);
-  app.use('/aircraft-types', basicAuth, aircraftTypesRouter);
-  app.use('/aircraft', basicAuth, aircraftRouter);
-  app.use('/pictures', basicAuth, picturesRouter);
-  app.use('/events', basicAuth, eventsRouter);
-  app.use('/ai-recommendations', basicAuth, aiRecommendationsRouter);
-  app.use('/ai-analysis', basicAuth, aiAnalysesRouter);
+  // All routes live under the `/api` prefix per the live-data contract.
+  app.use('/api/auth', basicAuth, authRouter);
+  // Public login endpoint — must precede the basicAuth-protected /api/users mount.
+  app.use('/api/users/auth', usersAuthRouter);
+  app.use('/api/users', basicAuth, usersRouter);
+  app.use('/api/roles', basicAuth, rolesRouter);
+  app.use('/api/permissions', basicAuth, permissionsRouter);
+  app.use('/api/polygons', basicAuth, polygonsRouter);
+  app.use('/api/targets', basicAuth, targetsRouter);
+  app.use('/api/aircraft-types', basicAuth, aircraftTypesRouter);
+  app.use('/api/aircraft', basicAuth, aircraftRouter);
+  // Pictures are exposed under the contract's storage namespace.
+  app.use('/api/storage/pictures', basicAuth, picturesRouter);
+  app.use('/api/events', basicAuth, eventsRouter);
+  app.use('/api/ai-recommendations', basicAuth, aiRecommendationsRouter);
+  app.use('/api/ai-analysis', basicAuth, aiAnalysesRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

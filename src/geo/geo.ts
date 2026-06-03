@@ -57,3 +57,22 @@ export function parseGeoJsonPoint(value: Prisma.JsonValue): GeoJsonPoint {
 export function parseGeoJsonPolygon(value: Prisma.JsonValue): GeoJsonPolygon {
     return value as unknown as GeoJsonPolygon;
 }
+
+/**
+ * The live-data contract exchanges coordinates as `{ lng, lat }` objects, while
+ * the database stores them as GeoJSON `Point` (`coordinates: [lng, lat]`). These
+ * helpers convert at the API boundary in both directions.
+ */
+export const LngLatSchema = z.object({ lng: longitude, lat: latitude }).strict();
+export type LngLat = z.infer<typeof LngLatSchema>;
+
+/** `{ lng, lat }` (inbound body) → GeoJSON Point ready for a Prisma `Json` column. */
+export function lngLatToPoint(coordinates: LngLat): GeoJsonPoint {
+    return { type: 'Point', coordinates: [coordinates.lng, coordinates.lat] };
+}
+
+/** Prisma `Json` Point column → `{ lng, lat }` for outbound serialization. */
+export function pointToLngLat(value: Prisma.JsonValue): LngLat {
+    const point = parseGeoJsonPoint(value);
+    return { lng: point.coordinates[0], lat: point.coordinates[1] };
+}

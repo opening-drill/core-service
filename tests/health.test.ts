@@ -21,7 +21,7 @@ describe('unknown route', () => {
     const res = await request(app).get('/does-not-exist');
 
     expect(res.status).toBe(404);
-    expect(res.body).toMatchObject({ error: 'NotFound' });
+    expect(res.body).toMatchObject({ error: { code: 'NOT_FOUND' } });
   });
 });
 

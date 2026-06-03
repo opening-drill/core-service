@@ -1,28 +1,26 @@
 /**
  * Picture storage — object-storage concerns for event PNGs.
  *
- * Uploads use a two-phase, pre-signed flow so bytes never transit the API:
- *   1. `createUploadUrl` returns a pre-signed PUT URL + the `s3_object_id`
- *      (key) and `s3_bucket_id` (bucket) the client should record.
- *   2. The client PUTs the file directly to S3/MinIO.
- *   3. The pictures service persists a `picture` row from those identifiers.
- * Downloads are served via short-lived pre-signed GET URLs.
+ * Uploads are a single request: the API receives the binary, writes it to
+ * S3/MinIO server-side (`uploadPicture`), and the pictures service persists a
+ * `picture` row from the returned identifiers. Downloads are served via
+ * short-lived pre-signed GET URLs.
  *
  * DB persistence lives in the pictures service; this module is storage-only.
  */
 import { randomUUID } from 'node:crypto';
 
-import { getPresignedGetUrl, getPresignedPutUrl, requireS3Env } from '../lib/s3.js';
+import { getPresignedGetUrl, putObject, requireS3Env } from '../lib/s3.js';
 
-export interface UploadUrl {
-  uploadUrl: string;
+export interface UploadedPicture {
   s3_object_id: string;
   s3_bucket_id: string;
-  expiresIn: number;
+  file_name: string;
 }
 
 export interface DownloadUrl {
   downloadUrl: string;
+  object_key: string;
   expiresIn: number;
 }
 
@@ -32,25 +30,30 @@ function buildObjectKey(fileName: string): string {
   return `pictures/${randomUUID()}/${safeName}`;
 }
 
-/** Creates a pre-signed PUT URL and the identifiers to persist afterwards. */
-export async function createUploadUrl(
-  fileName: string,
-  contentType: string,
-): Promise<UploadUrl> {
-  const cfg = requireS3Env();
-  const key = buildObjectKey(fileName);
-  const uploadUrl = await getPresignedPutUrl(key, contentType);
-  return {
-    uploadUrl,
-    s3_object_id: key,
-    s3_bucket_id: cfg.bucket,
-    expiresIn: cfg.presignExpirySeconds,
-  };
+/**
+ * Uploads the bytes server-side to the configured bucket and returns the
+ * identifiers to persist. The destination bucket is server-controlled only.
+ */
+export async function uploadPicture(input: {
+  buffer: Buffer;
+  fileName: string;
+  contentType: string;
+}): Promise<UploadedPicture> {
+  const key = buildObjectKey(input.fileName);
+  const bucket = await putObject(key, input.buffer, input.contentType);
+  return { s3_object_id: key, s3_bucket_id: bucket, file_name: input.fileName };
 }
 
-/** Creates a short-lived pre-signed GET URL for an existing object. */
-export async function createDownloadUrl(objectKey: string): Promise<DownloadUrl> {
+/**
+ * Creates a short-lived pre-signed GET URL for an existing object. `expiresIn`
+ * (seconds) overrides the configured default (contract `?expires=`).
+ */
+export async function createDownloadUrl(
+  objectKey: string,
+  expiresIn?: number,
+): Promise<DownloadUrl> {
   const cfg = requireS3Env();
-  const downloadUrl = await getPresignedGetUrl(objectKey);
-  return { downloadUrl, expiresIn: cfg.presignExpirySeconds };
+  const effectiveExpiry = expiresIn ?? cfg.presignExpirySeconds;
+  const downloadUrl = await getPresignedGetUrl(objectKey, effectiveExpiry);
+  return { downloadUrl, object_key: objectKey, expiresIn: effectiveExpiry };
 }

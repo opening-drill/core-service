@@ -36,14 +36,29 @@ export const aiRecommendationsService = {
     return rec;
   },
 
+  /**
+   * Stores the recommendation and links it back to the event. The schema has no
+   * `event_id` column (DB is frozen); the link is the reverse 1-1 relation, so we
+   * set `Event.ai_recommendation_id` in the same transaction.
+   */
   async create(input: AiRecommendationCreate) {
     await ensureAircraft(input.recommended_aircraft_id);
-    return prisma.aiRecommendation.create({
-      data: {
-        raw_recommendation: input.raw_recommendation,
-        recommended_aircraft_id: input.recommended_aircraft_id,
-        urgency_level: input.urgency_level,
-      },
+    return prisma.$transaction(async (tx) => {
+      const event = await tx.event.findFirst({
+        where: { id: input.event_id, delete_date: null },
+        select: { id: true },
+      });
+      if (!event) throw new HttpError(404, 'Event not found');
+
+      const rec = await tx.aiRecommendation.create({
+        data: {
+          raw_recommendation: input.raw_recommendation,
+          recommended_aircraft_id: input.recommended_aircraft_id,
+          urgency_level: input.urgency_level,
+        },
+      });
+      await tx.event.update({ where: { id: input.event_id }, data: { ai_recommendation_id: rec.id } });
+      return rec;
     });
   },
 

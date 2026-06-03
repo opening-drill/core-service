@@ -39,7 +39,7 @@ export const aircraftTypesOpenapi: OpenapiFragment = {
   tags: [{ name: 'aircraft-types', description: 'Aircraft type catalogue' }],
   schemas: { AircraftType, AircraftTypeCreate, AircraftTypeUpdate },
   paths: crudPaths({
-    base: '/aircraft-types',
+    base: '/api/aircraft-types',
     tag: 'aircraft-types',
     label: 'aircraft type',
     resource: 'AircraftType',

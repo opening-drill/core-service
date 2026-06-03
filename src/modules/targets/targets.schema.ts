@@ -1,22 +1,28 @@
 import { TargetStatus } from '@prisma/client';
 import { z } from 'zod';
 
-import { GeoJsonPointSchema } from '../../geo/geo.js';
+import { LngLatSchema, lngLatToPoint } from '../../geo/geo.js';
+import { contractEnumSchema } from '../../lib/enumCase.js';
 import { buildListQuerySchema } from '../../lib/query.js';
+
+/** Contract location `{ lng, lat }` → stored GeoJSON Point. */
+const contractLocation = LngLatSchema.transform(lngLatToPoint);
+/** Contract lowercase status → `TargetStatus` enum. */
+const contractTargetStatus = contractEnumSchema(TargetStatus);
 
 export const targetCreateSchema = z
   .object({
     name: z.string().min(1),
-    location: GeoJsonPointSchema,
-    status: z.nativeEnum(TargetStatus),
+    location: contractLocation,
+    status: contractTargetStatus,
   })
   .strict();
 
 export const targetUpdateSchema = z
   .object({
     name: z.string().min(1).optional(),
-    location: GeoJsonPointSchema.optional(),
-    status: z.nativeEnum(TargetStatus).optional(),
+    location: contractLocation.optional(),
+    status: contractTargetStatus.optional(),
   })
   .strict();
 
@@ -27,7 +33,7 @@ export const targetListQuerySchema = buildListQuerySchema([
   'name',
   'status',
 ]).extend({
-  status: z.nativeEnum(TargetStatus).optional(),
+  status: contractTargetStatus.optional(),
 });
 
 export type TargetCreate = z.infer<typeof targetCreateSchema>;
