@@ -12,18 +12,57 @@ async function ensureTypeActive(typeId: string): Promise<void> {
   if (!type) throw new HttpError(404, 'Aircraft type not found');
 }
 
+type AircraftFilterInput = {
+  status?: AircraftStatus | undefined;
+  type_id?: string | undefined;
+  type_name?: string | undefined;
+};
+
+function pickAircraftFilters(input: AircraftFilterInput): {
+  status?: AircraftStatus;
+  type_id?: string;
+  type_name?: string;
+} {
+  const filters: { status?: AircraftStatus; type_id?: string; type_name?: string } = {};
+  if (input.status !== undefined) filters.status = input.status;
+  if (input.type_id !== undefined) filters.type_id = input.type_id;
+  if (input.type_name !== undefined) filters.type_name = input.type_name;
+  return filters;
+}
+
+function buildAircraftWhere(filters: {
+  status?: AircraftStatus;
+  type_id?: string;
+  type_name?: string;
+}): Prisma.AircraftWhereInput {
+  return {
+    ...(filters.status !== undefined ? { status: filters.status } : {}),
+    ...(filters.type_id !== undefined ? { type_id: filters.type_id } : {}),
+    ...(filters.type_name !== undefined
+      ? { type: { name: { equals: filters.type_name, mode: 'insensitive' }, delete_date: null } }
+      : {}),
+  };
+}
+
 export const aircraftService = {
   async list(query: AircraftListQuery) {
-    const where: Prisma.AircraftWhereInput = {
-      ...(query.status !== undefined ? { status: query.status } : {}),
-      ...(query.type_id !== undefined ? { type_id: query.type_id } : {}),
-    };
+    const where = buildAircraftWhere(pickAircraftFilters(query));
     const { skip, take, orderBy } = toPrismaList(query, 'update_date');
     const [data, total] = await prisma.$transaction([
       prisma.aircraft.findMany({ where, skip, take, orderBy, include: aircraftTypeInclude }),
       prisma.aircraft.count({ where }),
     ]);
     return buildListResult(data, { page: query.page, limit: query.limit, total });
+  },
+
+  /** All aircraft of a given type (contract list shape; optional status filter). */
+  async listByTypeId(typeId: string, filters: { status?: AircraftStatus } = {}) {
+    await ensureTypeActive(typeId);
+    return prisma.aircraft.findMany({
+      where: buildAircraftWhere(pickAircraftFilters({ type_id: typeId, status: filters.status })),
+      orderBy: { update_date: 'desc' },
+      include: aircraftTypeInclude,
+    });
   },
 
   /**

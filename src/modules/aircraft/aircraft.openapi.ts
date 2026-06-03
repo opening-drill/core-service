@@ -144,8 +144,12 @@ export const aircraftOpenapi: OpenapiFragment = {
     '/api/aircraft': {
       get: {
         tags: ['aircraft'],
-        summary: 'List aircraft (e.g. ?status=free)',
-        parameters: [{ name: 'status', in: 'query', schema: STATUS }],
+        summary: 'List aircraft (filter by status, type_id, or type_name)',
+        parameters: [
+          { name: 'status', in: 'query', schema: STATUS },
+          { name: 'type_id', in: 'query', schema: { type: 'string', format: 'uuid' } },
+          { name: 'type_name', in: 'query', schema: { type: 'string', description: 'Exact type name, e.g. F-15' } },
+        ],
         responses: {
           '200': { description: 'Aircraft', content: jsonContent(ref('AircraftList')) },
           ...errorResponses('400', '401', '403'),
@@ -156,6 +160,23 @@ export const aircraftOpenapi: OpenapiFragment = {
         summary: 'Create an aircraft (internal)',
         requestBody: { required: true, content: jsonContent(ref('AircraftCreate')) },
         responses: { '201': { description: 'Created' }, ...errorResponses('400', '401', '403', '404') },
+      },
+    },
+    '/api/aircraft-types/{type_id}/aircraft': {
+      get: {
+        tags: ['aircraft'],
+        summary: 'List aircraft by type id',
+        description:
+          'Returns all aircraft of the given type. Optional `status` filter. ' +
+          'Same response shape as `GET /api/aircraft`.',
+        parameters: [
+          { name: 'type_id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+          { name: 'status', in: 'query', schema: STATUS },
+        ],
+        responses: {
+          '200': { description: 'Aircraft of this type', content: jsonContent(ref('AircraftList')) },
+          ...errorResponses('400', '401', '403', '404'),
+        },
       },
     },
     '/api/aircraft/live': {
