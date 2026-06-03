@@ -43,7 +43,7 @@ export const GeoJsonPointSchema = z.object({
 export type GeoJsonPoint = z.infer<typeof GeoJsonPointSchema>;
 
 export const GeoJsonPathSchema = z.array(// TODO: Use for history
-  z.tuple([z.number(), z.number()]), // [longitude, latitude]
+  z.tuple([z.number(), z.number()]),
 );
 
 export type GeoJsonPath = z.infer<typeof GeoJsonPathSchema>;
