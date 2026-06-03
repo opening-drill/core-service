@@ -14,9 +14,7 @@ const globalForPrisma = globalThis as unknown as {
 let prisma: PrismaClient;
 
 const connectionString =
-  env.DATABASE_URL ||
-  'postgresql://postgres:hashlama020@34.165.129.193:5432/AIrcraft-NP';
-
+  env.DATABASE_URL
 if (isProduction) {
   const pool = new Pool({ connectionString });
   const adapter = new PrismaPg(pool);
