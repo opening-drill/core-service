@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { GeoJsonPointSchema, LngLatSchema, lngLatToPoint } from '../../geo/geo.js';
+import { LngLatSchema, PathSchema, lngLatArrayToPath } from '../../geo/geo.js';
 import { buildListQuerySchema } from '../../lib/query.js';
 
 export const pathHistoryParamsSchema = z.object({ aircraftId: z.string().uuid() });
@@ -25,7 +25,7 @@ export const aircraftTrackQuerySchema = z.object({
 export const pathHistoryBatchPointSchema = z
   .object({
     aircraft_id: z.string().uuid(),
-    location: LngLatSchema.transform(lngLatToPoint),
+    location: z.array(LngLatSchema).min(1).transform(lngLatArrayToPath),
     altitude: z.number().int().optional(),
     horizontal_speed_mps: z.number().optional(),
     vertical_speed_mps: z.number().optional(),
@@ -39,7 +39,7 @@ export const pathHistoryBatchSchema = z.array(pathHistoryBatchPointSchema).min(1
 
 export const pathHistoryCreateSchema = z
   .object({
-    location: GeoJsonPointSchema,
+    location: PathSchema,
     altitude: z.number().int(),
     horizontal_speed_mps: z.number(),
     vertical_speed_mps: z.number(),

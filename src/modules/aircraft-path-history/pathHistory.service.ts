@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 
-import { toGeoJsonInput } from '../../geo/geo.js';
+import { toPathInput } from '../../geo/geo.js';
 import { prisma } from '../../lib/prisma.js';
 import { buildListResult, toPrismaList } from '../../lib/query.js';
 import { HttpError } from '../../middleware/errorHandler.js';
@@ -41,7 +41,7 @@ export const pathHistoryService = {
     return prisma.aircraftPathHistory.create({
       data: {
         aircraft_id: aircraftId,
-        location: toGeoJsonInput(input.location),
+        location: toPathInput(input.location),
         altitude: input.altitude,
         horizontal_speed_mps: input.horizontal_speed_mps,
         vertical_speed_mps: input.vertical_speed_mps,
@@ -99,7 +99,7 @@ export const pathHistoryService = {
     const result = await prisma.aircraftPathHistory.createMany({
       data: points.map((p) => ({
         aircraft_id: p.aircraft_id,
-        location: toGeoJsonInput(p.location),
+        location: toPathInput(p.location),
         altitude: p.altitude ?? null,
         horizontal_speed_mps: p.horizontal_speed_mps ?? null,
         vertical_speed_mps: p.vertical_speed_mps ?? null,

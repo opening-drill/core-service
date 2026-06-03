@@ -171,7 +171,6 @@ Enum TargetStatus {
 Enum AircraftStatus {
   BUSY
   FREE
-  BROKEN
 }
 
 Ref: user_role.user_id > user.id
