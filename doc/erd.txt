@@ -1,0 +1,131 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+
+Table user {
+  id varchar [primary key]
+  first_name varchar
+  last_name varchar
+  create_date timestamp
+  delete_date timestamp
+}
+// extention
+Table role {
+  id uuid [primary key] 
+  name varchar
+  create_date timestamp
+  delete_date timestamp
+}
+
+// extention
+Table permission {
+  permission enum [note: 'Enum- edit, view, etc...']
+  create_date timestamp
+  delete_date timestamp
+}
+
+//extention
+Table user_role {
+  id integer [primary key, increment] 
+  user_id varchar [ref: > user.id]
+  role_id uuid [ref: > role.id]
+  create_date timestamp
+  delete_date timestamp
+}
+
+// extention
+Table role_permission {
+  id integer [primary key, increment] 
+  role_id uuid [ref: > role.id]
+  permission enum [ref: > permission.permission]
+  create_date timestamp
+  delete_date timestamp
+}
+
+Table picture {
+  id uuid [primary key] 
+  object_key varchar [note: "key for a file in MinIO/ S3"]
+  bucket varchar [note: "a directory in MinIO/ S3"]
+  file_name varchar
+  uploaded_at timestamp
+}
+
+Table polygon {
+  id uuid [primary key]
+  name varchar
+  area GEOGRAPHY(POLYGON, 4326)
+  zone enum [note: 'עזה דרום, עזה צפון וכו']
+  state_duartion integer [note: 'דקות שהפוליגון מסוכן']
+  create_date timestamp
+  delete_date timestamp
+}
+
+Table target {
+  id uuid [primary key] 
+  name varchar
+  location GEOGRAPHY(POINT, 4326)
+  status enum [note: 'Enum- destroyed, standing etc.']
+  create_date timestamp
+  delete_date timestamp
+}
+
+Table event {
+  id uuid [primary key] 
+  user_id varchar [ref: > user.id]
+  target_id uuid [ref: > target.id]
+  aircraft_id uuid [ref: > aircraft.id, default: null]
+  picture_id uuid [ref: > picture.id]
+  ai_recommendation_id uuid [ref: - ai_recommendation.id, default: null]
+  create_date timestamp
+  delete_date timestamp
+  update_date timestamp
+}
+
+
+Table aircraft_type {
+  id uuid [primary key] 
+  name varchar
+  price integer
+  create_date timestamp
+  delete_date timestamp
+  // we can add other properties like max carring weight etc. 
+  // that can help the ai tool
+}
+
+Table aircraft {
+  id uuid [primary key]
+  type_id uuid [ref: > aircraft_type.id]
+  status enum [note: 'enum- busy, free, broken etc. ']
+  update_date timestamp
+}
+
+Table aircraft_path_history {
+  id integer [primary key, increment]
+  aircraft_id uuid  [ref: > aircraft.id]
+  location GEOGRAPHY(POINT, 4326)
+  altitude integer
+  horizontal_speed_mps float // mps = meters per second
+  vertical_speed_mps float
+  heading_degrees float
+  position_accuracy_m float
+  update_date timestamp
+}
+
+// not sure we need this
+Table ai_recommendation {
+  id uuid [primary key]
+  raw_recommendation text 
+  recommended_aircraft_id uuid [ref: > aircraft.id]
+  urgency_level float
+  create_date timestamp
+}
+
+// we will take the current aircraft details 
+// based on the latest update_date
+// on the other hand we can store the last state in aircraft- 
+// storage vs runtime, in this sitation maybe runtime if better
+
+// its recommended to index the location columns
+
+// to think about: do we want to consider situations where:
+// 1.an event has multiple aircrafts
+// 2.an event has multiple files
