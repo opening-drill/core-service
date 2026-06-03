@@ -7,6 +7,7 @@ import { validate } from '../../middleware/validate.js';
 import { userRolesRouter } from '../user-roles/userRoles.routes.js';
 import { usersController } from './users.controller.js';
 import {
+  userAuthSchema,
   userCreateSchema,
   userIdParamSchema,
   userListQuerySchema,
@@ -15,9 +16,14 @@ import {
   userUpdateSchema,
 } from './users.schema.js';
 
-/** POST /api/users/auth — verify `X-Api-Key` (public). */
+/** POST /api/users/auth — username/password in body; `X-Api-Key` in header only. */
 export const usersAuthRouter = Router();
-usersAuthRouter.post('/', requireApiKey, asyncHandler(usersController.verifyApiKey));
+usersAuthRouter.post(
+  '/',
+  requireApiKey,
+  validate({ body: userAuthSchema }),
+  asyncHandler(usersController.authenticate),
+);
 
 /** POST /api/users/signup — provision a user (requires `X-Api-Key`). */
 export const usersSignupRouter = Router();

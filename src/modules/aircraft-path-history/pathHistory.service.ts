@@ -42,11 +42,6 @@ export const pathHistoryService = {
       data: {
         aircraft_id: aircraftId,
         location: toPathInput(input.location),
-        altitude: input.altitude,
-        horizontal_speed_mps: input.horizontal_speed_mps,
-        vertical_speed_mps: input.vertical_speed_mps,
-        heading_degrees: input.heading_degrees,
-        position_accuracy_m: input.position_accuracy_m,
       },
     });
   },
@@ -100,11 +95,6 @@ export const pathHistoryService = {
       data: points.map((p) => ({
         aircraft_id: p.aircraft_id,
         location: toPathInput(p.location),
-        altitude: p.altitude ?? null,
-        horizontal_speed_mps: p.horizontal_speed_mps ?? null,
-        vertical_speed_mps: p.vertical_speed_mps ?? null,
-        heading_degrees: p.heading_degrees ?? null,
-        position_accuracy_m: p.position_accuracy_m ?? null,
         ...(p.update_date !== undefined ? { update_date: p.update_date } : {}),
       })),
     });

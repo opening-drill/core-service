@@ -34,4 +34,4 @@ COPY --chown=node:node package.json ./
 
 USER node
 EXPOSE 3000
-CMD ["node", "dist/server.js"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && node dist/server.js"]

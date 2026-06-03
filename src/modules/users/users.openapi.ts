@@ -79,10 +79,24 @@ const apiKeyHeaderParam = {
   description: 'Must match env `API_KEY`.',
 };
 
+const UserAuthBody = {
+  type: 'object',
+  properties: {
+    username: { type: 'string' },
+    password: { type: 'string' },
+  },
+  required: ['username', 'password'],
+};
+
 const UserAuthResult = {
   type: 'object',
-  properties: { valid: { type: 'boolean', enum: [true] } },
-  required: ['valid'],
+  properties: {
+    valid: { type: 'boolean', enum: [true] },
+    user_id: { type: 'string', description: 'Same as username' },
+    roles: { type: 'array', items: { type: 'string' } },
+    permissions: { type: 'array', items: { type: 'string' } },
+  },
+  required: ['valid', 'user_id', 'roles', 'permissions'],
 };
 
 const UserSignup = {
@@ -122,6 +136,7 @@ export const usersOpenapi: OpenapiFragment = {
     RoleAssignmentResult,
     RoleAssignCreate,
     UserPermissions,
+    UserAuthBody,
     UserAuthResult,
     UserSignup,
     UserSignupResult,
@@ -140,13 +155,15 @@ export const usersOpenapi: OpenapiFragment = {
     '/api/users/auth': {
       post: {
         tags: ['users'],
-        summary: 'Verify `X-Api-Key`',
-        description: 'Returns `{ valid: true }` when the API key is accepted.',
+        summary: 'Authenticate a user',
+        description:
+          'Verifies `username` and `password` against the database. Requires header `X-Api-Key` matching server env `API_KEY` (not in the request body).',
         security: [],
         parameters: [apiKeyHeaderParam],
+        requestBody: { required: true, content: jsonContent(ref('UserAuthBody')) },
         responses: {
-          '200': { description: 'API key accepted', content: jsonContent(ref('UserAuthResult')) },
-          ...errorResponses('401'),
+          '200': { description: 'Credentials accepted', content: jsonContent(ref('UserAuthResult')) },
+          ...errorResponses('400', '401'),
         },
       },
     },

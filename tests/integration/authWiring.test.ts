@@ -57,11 +57,15 @@ describe('auth wiring (no DB)', () => {
     expect(res.body.error.code).toBe('INVALID_JSON');
   });
 
-  it('POST /api/users/auth returns valid when X-Api-Key is correct', async () => {
-    const res = await request(createApp())
-      .post('/api/users/auth')
-      .set(apiKeyHeader(TEST_API_KEY));
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ valid: true });
+  it('POST /api/users/auth requires X-Api-Key and a JSON body', async () => {
+    const app = createApp();
+    expect((await request(app).post('/api/users/auth')).status).toBe(401);
+    expect(
+      (
+        await request(app)
+          .post('/api/users/auth')
+          .set(apiKeyHeader(TEST_API_KEY))
+      ).status,
+    ).toBe(400);
   });
 });

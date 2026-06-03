@@ -29,9 +29,7 @@ const AircraftLiveItem = {
     aircraft_id: { type: 'string', format: 'uuid' },
     aircraft_type: { type: 'string' },
     status: STATUS,
-    location: { ...ref('LngLat'), nullable: true },
-    altitude: { type: 'integer', nullable: true },
-    heading_degrees: { type: 'number', nullable: true },
+    location: { type: 'array', items: ref('LngLat'), nullable: true },
     update_date: { type: 'string', format: 'date-time', nullable: true },
   },
   required: ['aircraft_id', 'aircraft_type', 'status'],
@@ -63,9 +61,7 @@ const AircraftUpdateResult = {
 const PathPoint = {
   type: 'object',
   properties: {
-    location: ref('LngLat'),
-    altitude: { type: 'integer', nullable: true },
-    heading_degrees: { type: 'number', nullable: true },
+    location: { type: 'array', items: ref('LngLat') },
     update_date: { type: 'string', format: 'date-time' },
   },
 };
@@ -82,8 +78,7 @@ const PathResult = {
 const TrackPoint = {
   type: 'object',
   properties: {
-    location: ref('LngLat'),
-    altitude: { type: 'integer', nullable: true },
+    location: { type: 'array', items: ref('LngLat') },
     update_date: { type: 'string', format: 'date-time' },
   },
 };
@@ -101,12 +96,7 @@ const PathHistoryBatchPoint = {
   type: 'object',
   properties: {
     aircraft_id: { type: 'string', format: 'uuid' },
-    location: ref('LngLat'),
-    altitude: { type: 'integer' },
-    horizontal_speed_mps: { type: 'number' },
-    vertical_speed_mps: { type: 'number' },
-    heading_degrees: { type: 'number' },
-    position_accuracy_m: { type: 'number' },
+    location: { type: 'array', items: ref('LngLat') },
     update_date: { type: 'string', format: 'date-time' },
   },
   required: ['aircraft_id', 'location'],

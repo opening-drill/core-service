@@ -77,7 +77,7 @@ export const aircraftService = {
     });
     if (aircraft.length === 0) return [];
     const latestRows = await prisma.$queryRaw<Array<{ aircraft_id: string } & LatestPosition>>`
-      SELECT DISTINCT ON (aircraft_id) aircraft_id, location, altitude, heading_degrees, update_date
+      SELECT DISTINCT ON (aircraft_id) aircraft_id, location, update_date
       FROM aircraft_path_history
       ORDER BY aircraft_id, update_date DESC
     `;

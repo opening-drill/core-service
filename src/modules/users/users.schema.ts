@@ -22,6 +22,14 @@ export const userIdParamSchema = z.object({ id: z.string().uuid() });
 /** `:user_id` path param for permissions/roles is the username, not a UUID. */
 export const userNameParamSchema = z.object({ userId: z.string().min(1) });
 
+/** POST /api/users/auth — verify username/password (requires `X-Api-Key` header). */
+export const userAuthSchema = z
+  .object({
+    username: z.string().min(1),
+    password: z.string().min(1),
+  })
+  .strict();
+
 /** POST /api/users/signup — provision a user (requires `X-Api-Key`). */
 export const userSignupSchema = z
   .object({
@@ -47,4 +55,5 @@ export const userListQuerySchema = buildListQuerySchema([
 export type UserCreate = z.infer<typeof userCreateSchema>;
 export type UserUpdate = z.infer<typeof userUpdateSchema>;
 export type UserListQuery = z.infer<typeof userListQuerySchema>;
+export type UserAuth = z.infer<typeof userAuthSchema>;
 export type UserSignup = z.infer<typeof userSignupSchema>;
