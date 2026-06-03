@@ -64,7 +64,7 @@ Table polygon {
   name String [not null]
   geojson Json [not null]
   zone Zone [not null]
-  state_duration Int [not null]
+  expiry_date DateTime [not null]
   create_date DateTime [default: `now()`, not null]
   delete_date DateTime
 }
@@ -156,7 +156,19 @@ Enum PermissionType {
 
 Enum Zone {
   GAZA_SOUTH
+  GAZA_CENTER
   GAZA_NORTH
+  BEER_SHEVA
+  TEL_AVIV
+  TZRIFIN
+  SYRIA
+  IRAQ
+  YEMEN
+  JORDAN
+  EGYPT
+  IRAN
+  LEBANON_SOUTH
+  LEBANON_NORTH
 }
 
 Enum TargetStatus {

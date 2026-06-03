@@ -1,7 +1,6 @@
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
-
 import { env, isProduction } from '../config/env.js';
 
 // Setup singleton PrismaClient for Prisma 7 with driver adapter.

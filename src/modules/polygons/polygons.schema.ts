@@ -9,7 +9,7 @@ export const polygonCreateSchema = z
     name: z.string().min(1),
     geojson: GeoJsonPolygonSchema,
     zone: z.nativeEnum(Zone),
-    state_duration: z.number().int().nonnegative(),
+    expiry_date: z.date(),
   })
   .strict();
 
