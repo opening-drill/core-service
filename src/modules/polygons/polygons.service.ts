@@ -37,7 +37,7 @@ export const polygonsService = {
         name: input.name,
         geojson: toGeoJsonInput(input.geojson),
         zone: input.zone,
-        state_duration: input.state_duration,
+        expiry_date: input.expiry_date,
       },
     });
   },
