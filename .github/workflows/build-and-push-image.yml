@@ -1,6 +1,9 @@
 name: Build and Push Docker Image to GCP
 
 on:
+  push:
+    branches:
+      - feature/gcp-docker-image-upload
   pull_request:
     branches:
       - main
