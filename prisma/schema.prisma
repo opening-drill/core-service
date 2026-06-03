@@ -7,7 +7,7 @@ generator client {
 }
 
 generator dbml {
-  provider = "node node_modules/prisma-dbml-generator/dist/generator.js"
+  provider = "prisma-dbml-generator"
 }
 
 model User {

@@ -9,7 +9,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "build": "prisma generate --generator client && tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
