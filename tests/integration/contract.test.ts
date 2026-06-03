@@ -49,7 +49,7 @@ describe.skipIf(!hasTestDb)('Live-data contract (DB)', () => {
     await prisma.aircraftPathHistory.create({
       data: { aircraft_id: aircraft.id, location: point(lng, lat), altitude: 1200, heading_degrees: 270 },
     });
-    return aircraft.id;
+    return { aircraftId: aircraft.id, typeId: type.id };
   }
 
   it('runs the report-target flow with contract shapes', async () => {
@@ -107,7 +107,7 @@ describe.skipIf(!hasTestDb)('Live-data contract (DB)', () => {
     expect(list.body.events[0]).toMatchObject({ event_id: eventId, user_id: rbac.adminUsername });
 
     // 4. ai-context (free aircraft).
-    const freeId = await seedAircraft(AircraftStatus.FREE);
+    const { aircraftId: freeId } = await seedAircraft(AircraftStatus.FREE);
     const ctx = await request(app).get(`/api/events/${eventId}/ai-context`).set(auth);
     expect(ctx.body.event_context).toMatchObject({
       event_id: eventId,
@@ -155,10 +155,17 @@ describe.skipIf(!hasTestDb)('Live-data contract (DB)', () => {
   });
 
   it('serves aircraft list, live, path, track, batch and patch', async () => {
-    const freeId = await seedAircraft(AircraftStatus.FREE, 34.78, 32.08);
+    const { aircraftId: freeId, typeId } = await seedAircraft(AircraftStatus.FREE, 34.78, 32.08);
 
     const listFree = await request(app).get('/api/aircraft?status=free').set(auth);
     expect(listFree.body.aircraft[0]).toMatchObject({ aircraft_id: freeId, aircraft_type: 'F-15', status: 'free' });
+
+    const byType = await request(app).get(`/api/aircraft-types/${typeId}/aircraft?status=free`).set(auth);
+    expect(byType.status).toBe(200);
+    expect(byType.body.aircraft.some((a: { aircraft_id: string }) => a.aircraft_id === freeId)).toBe(true);
+
+    const byTypeName = await request(app).get('/api/aircraft?type_name=F-15&status=free').set(auth);
+    expect(byTypeName.body.aircraft.some((a: { aircraft_id: string }) => a.aircraft_id === freeId)).toBe(true);
 
     const live = await request(app).get('/api/aircraft/live').set(auth);
     const liveRow = live.body.aircraft.find((a: { aircraft_id: string }) => a.aircraft_id === freeId);
