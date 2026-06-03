@@ -6,6 +6,13 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci
 
+# Copy Prisma schema and config
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+
+# Generate Prisma Client
+RUN npx prisma generate
+
 COPY tsconfig.json tsconfig.build.json ./
 COPY src ./src
 RUN npm run build
@@ -21,6 +28,8 @@ ENV NODE_ENV=production
 # Run as the non-root user shipped with the node image.
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/dist ./dist
+COPY --from=build --chown=node:node /app/prisma ./prisma
+COPY --from=build --chown=node:node /app/prisma.config.ts ./
 COPY --chown=node:node package.json ./
 
 USER node
