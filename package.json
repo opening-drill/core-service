@@ -20,14 +20,18 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:seed": "tsx prisma/seed.ts",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "mig:dev": "prisma migrate dev",
+    "mig:env": "prisma migrate deploy"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "express": "^5.1.0",
+    "pg": "^8.21.0",
     "pino": "^9.6.0",
     "pino-http": "^10.4.0",
     "swagger-ui-express": "^5.0.1",
@@ -37,6 +41,7 @@
     "@eslint/js": "^9.18.0",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.5",
+    "@types/pg": "^8.20.0",
     "@types/supertest": "^6.0.2",
     "@types/swagger-ui-express": "^4.1.7",
     "eslint": "^9.18.0",

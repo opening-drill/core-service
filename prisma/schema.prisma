@@ -3,8 +3,7 @@ datasource db {
 }
 
 generator client {
-  provider = "prisma-client"
-  output   = "./generated-client"
+  provider = "prisma-client-js"
 }
 
 model User {
@@ -45,7 +44,7 @@ model Permission {
 
 model UserRole {
   id          Int       @id @default(autoincrement())
-  user_id     String
+  user_id     String    @db.Uuid
   role_id     String    @db.Uuid
   create_date DateTime  @default(now())
   delete_date DateTime?
@@ -76,7 +75,8 @@ model Picture {
   file_name    String
   uploaded_at  DateTime @default(now())
 
-  events Event[]
+  events     Event[]
+  aiAnalyses AiAnalysis[]
 
   @@map("picture")
 }
@@ -166,6 +166,17 @@ model AircraftPathHistory {
   aircraft Aircraft @relation(fields: [aircraft_id], references: [id])
 
   @@map("aircraft_path_history")
+}
+
+model AiAnalysis {
+  id          String   @id @default(uuid()) @db.Uuid
+  raw_result  String   @db.Text
+  picture_id  String   @db.Uuid
+  create_date DateTime @default(now())
+
+  picture Picture @relation(fields: [picture_id], references: [id])
+
+  @@map("ai_analysis")
 }
 
 model AiRecommendation {

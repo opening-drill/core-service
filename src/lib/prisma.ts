@@ -1,12 +1,53 @@
+import { PrismaClient } from '@prisma/client';
+import { Pool } from 'pg';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { z } from 'zod';
+
+// Setup singleton PrismaClient for Prisma 7 with driver adapter
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+let prisma: PrismaClient;
+
+const connectionString =
+  process.env.DATABASE_URL ||
+  'postgresql://postgres:hashlama020@34.165.129.193:5432/AIrcraft-NP';
+
+if (process.env.NODE_ENV === 'production') {
+  const pool = new Pool({ connectionString });
+  const adapter = new PrismaPg(pool);
+  prisma = new PrismaClient({ adapter });
+} else {
+  if (!globalForPrisma.prisma) {
+    const pool = new Pool({ connectionString });
+    const adapter = new PrismaPg(pool);
+    globalForPrisma.prisma = new PrismaClient({ adapter });
+  }
+  prisma = globalForPrisma.prisma;
+}
+
+export { prisma };
+
 /**
- * PrismaClient singleton.
- *
- * Placeholder for M1 — the Prisma schema and generated client land in M2.
- * Once `prisma generate` has run, replace this with:
- *
- *   import { PrismaClient } from '@prisma/client';
- *   export const prisma = new PrismaClient();
- *
- * and wire connect()/disconnect() into the server lifecycle.
+ * GeoJSON Zod Schemas & Types
+ * Since location/area columns are stored as JSON in the database,
+ * these Zod schemas validate coordinates and structures to comply with the GeoJSON standard (RFC 7946).
  */
-export {};
+
+export const GeoJsonPointSchema = z.object({
+  type: z.literal('Point'),
+  coordinates: z.tuple([z.number(), z.number()]), // [longitude, latitude]
+});
+
+export type GeoJsonPoint = z.infer<typeof GeoJsonPointSchema>;
+
+export const GeoJsonPolygonSchema = z.object({
+  type: z.literal('Polygon'),
+  coordinates: z.array(
+    z.array(z.tuple([z.number(), z.number()]))
+      .min(3, { message: 'A polygon must have at least 3 coordinates' })
+  ),
+});
+
+export type GeoJsonPolygon = z.infer<typeof GeoJsonPolygonSchema>;
