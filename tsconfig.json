@@ -28,7 +28,8 @@
     "src/**/*.ts",
     "prisma/**/*.ts",
     "tests/**/*.ts",
-    "prisma.config.ts"
+    "prisma.config.ts",
+    "api/**/*.ts"
   ],
   "exclude": [
     "node_modules",
